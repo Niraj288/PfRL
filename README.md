@@ -19,15 +19,15 @@ When called, the class performs some priliminary functions to get started from p
 
 ### coordi
 
-gives the initial coordinates of the straight chain of protein atoms\n
+gives the initial coordinates of the straight chain of protein atoms,
 shape = (-1,3)
 
 ### atoms
 
-gives the atomic number of each of the atoms\n
+gives the atomic number of each of the atoms,
 shape = (-1)
 
 ### API : getPE
 
-args = coordinates of shape (-1,3)]\n
+args = coordinates of shape (-1,3)],
 returns Potential energy of the coordinates provided
