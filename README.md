@@ -15,7 +15,7 @@ source ~/amber/bin/amber.sh
 
 ## Protein class description
 
-When called, the class performs some priliminary functions to get started from pdb. The coordinates from pdb is takes out and a straight chain for the protein is made. The straight chain is minimized for VanDerWallas interactions etc. The force field ff14fb is applied for making topology files and energy calculations.
+When called, the class performs some priliminary functions to get started from pdb. The sequence from pdb file is taken out and a straight chain for the protein is made. The straight chain is minimized for VanDerWallas interactions etc. The force field ff14fb is applied for making topology files and energy calculations.
 
 ### coordi
 
