@@ -10,6 +10,7 @@ Protein folding via Reinforcement Learning (PfRL)
 ### Installation of AmberTools
 
 conda install -c ambermd ambertools
+
 source ~/amber/bin/amber.sh
 
 
