@@ -197,7 +197,10 @@ class protein:
 
 		st_coord = 'Temporary file\n'+str(a)+'\n'
 		for i in range (0, len(coord), 6):
-
+			li = []
+			for j in range (i,i+6):
+				if len(str(coord[j])) > 10:
+					coord[j] = float(str(coord[j])[:12])
 			st_coord += "{:>12}{:>12}{:>12}{:>12}{:>12}{:>12}".format(*coord[i:i+6])+'\n'
 
 		f = open(self.namer+'_temp.xyz', 'w')
@@ -272,7 +275,7 @@ class environ(protein):
 		new_state = self.state()
 
 		reward = -self.getPE(self.dcoord) # -ve is to maximize energy
-
+		print ('Reward:',reward)
 		is_done = False
 
 		if reward > self.max_energy:
