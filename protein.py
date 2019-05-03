@@ -1,9 +1,11 @@
 import sys
 import os
 import numpy as np
+from scipy.spatial import distance_matrix
 
 class protein:
-	def __init__(self, pdb_file):
+	def __init__(self, pdb_file, name = 'Environment not set'):
+		self.name = name 
 		self.pdb_file = pdb_file
 		self.initialize()
 
@@ -83,7 +85,7 @@ class protein:
 					id,at,rt,_,_0,x,y,z=line.strip().split()[1:9]
 					s=line.strip().split()[-1]
 					d[int(_0)]=rt
-
+			print (d)
 			d[1] = 'N'+d[1]
 			d[len(d)] = 'C'+d[len(d)]
 			arr = [d[i] for i in range (1,len(d)+1)]
@@ -151,10 +153,9 @@ class protein:
  ntpr=100
 /
 """
-
-	 	g = open('min1.in','w')
-	 	g.write(text)
-	 	g.close()
+		g = open('min1.in','w')
+		g.write(text)
+		g.close()
 
 	def sp_input(self):
 		f = open('sp.in','w')
@@ -217,6 +218,77 @@ class protein:
 				return float(line.strip().split()[-1])
 
 		raise Exception('Something wrong while evaluating PE output')
+
+	def __str__(self):
+		return self.name 
+
+class environ(protein):
+	def __init__(self, pdb, name):
+		self.name = name
+		protein.__init__(self, pdb)
+		super(environ, self).__init__()
+
+	def reset(self):
+		# set dynamic coordinate to initial coordinate
+		self.dcoord = self.icoord
+		self.max_energy = 150
+		self.natoms = len(self.atoms)
+		self.directions = [[1,0,0],
+							[-1,0,0],
+							[0,1,0],
+							[0,-1,0],
+							[0,0,1],
+							[0,0,-1]]
+
+		state = self.state()
+
+		# specific to pairwise state
+		l = state.shape[0]
+		self.obs_size = l*l
+
+		self.n_actions = 3*self.natoms*6
+		return state
+
+	def state(self):
+
+		M = distance_matrix(self.dcoord, self.dcoord)
+
+		return M
+
+		# Make M upper triangle pairwise distances
+
+	def step(self, action):
+		ac = np.argmax(action)
+
+		# action space is 3N*6
+		atom_index, direcn = divmod(ac,6)
+
+		current_coord = self.dcoord[atom_index]
+		new_coord = current_coord+0.5*self.directions[direcn] # move 0.5 Angstron
+
+		self.dcoord = new_coord
+
+		new_state = self.state()
+
+		reward = -self.getPE(self.dcoord) # -ve is to maximize energy
+
+		is_done = False
+
+		if reward > self.max_energy:
+			is_done = True
+
+		return new_state, reward, is_done
+
+
+
+	class action_space:
+		def sample(self):
+			s = np.zeros(self.natoms*3*6) # 3N coordinates * 6 direcn
+			i = np.random.randint(self.natoms*3*6)
+			s[i] = 1.0
+			return s
+
+
 
 if __name__ == '__main__':
 
