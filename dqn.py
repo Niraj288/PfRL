@@ -75,7 +75,6 @@ class Agent:
 
 def calc_loss(batch, net, tgt_net, device="cpu"):
     states, actions, rewards, dones, next_states = batch
-
     # Two networks are passed in, one we are updateing
     #  and another that is a previous version
     #  we use the previous network to observe Q(s,a)
@@ -83,14 +82,16 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
     # send the observed states to Net 
     states_v = torch.tensor(states, dtype = torch.float).to(device)
     next_states_v = torch.tensor(next_states, dtype = torch.float).to(device)
-    actions_v = torch.tensor(actions, dtype = torch.float).to(device)
+    actions_v = torch.tensor(actions).to(device, dtype = torch.long)
     rewards_v = torch.tensor(rewards, dtype = torch.float).to(device)
     done_mask = torch.ByteTensor(dones).to(device)
 
     # get the Network actions for given states
     #  but only for states that did not end in a 'done' state
+    #print (net(states_v).shape, actions_v.view(-1, 4248).unsqueeze(-1).shape)
     state_action_values = net(states_v).gather(1, actions_v.unsqueeze(-1)).squeeze(-1)
-    next_state_values = tgt_net(next_states_v.double()).max(1)[0]
+    next_state_values = tgt_net(next_states_v).max(1)[0]
+    print (state_action_values.shape, next_state_values.shape)
     next_state_values[done_mask] = 0.0 # ensures these are only rewards
     
     # detach the calculation we just made from computation graph
@@ -131,8 +132,6 @@ class Net(nn.Module):
 
     def forward(self, x):
         return self.net(x)
-
-
 
 HIDDEN_SIZE = 256
 

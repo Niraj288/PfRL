@@ -250,7 +250,7 @@ class environ(protein):
 
 		# specific to pairwise state
 		l = state.shape[0]
-		self.obs_size = l*l
+		self.obs_size = l
 
 		self.n_actions = 3*self.natoms*6
 		return state
@@ -259,7 +259,7 @@ class environ(protein):
 		#print (self.dcoord.shape, 'dcoord')
 		M = distance_matrix(self.dcoord, self.dcoord)
 
-		return M
+		return M.flatten()
 
 		# Make M upper triangle pairwise distances
 
