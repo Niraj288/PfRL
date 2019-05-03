@@ -218,6 +218,8 @@ class protein:
 
 		for line in lines:
 			if 'Etot   = ' in line:
+				if '*' in line:
+					return 999999999
 				return float(line.strip().split()[-1])
 
 		raise Exception('Something wrong while evaluating PE output')
@@ -267,10 +269,11 @@ class environ(protein):
 		# action space is 3N*6
 		atom_index, direcn = divmod(ac,6)
 		atom_index = atom_index/3
-		print (atom_index, direcn)
-		current_coord = self.dcoord[int(atom_index)]
-		self.dcoord[int(atom_index)] = current_coord+0.5*self.directions[direcn] # move 0.5 Angstron
-
+		print (int(atom_index), direcn)
+		new_coord = self.dcoord[int(atom_index)]+0.5*self.directions[direcn] # move 0.5 Angstron
+		#print (self.dcoord[int(atom_index)])
+		self.dcoord[int(atom_index)] = new_coord 
+		#print (self.dcoord[int(atom_index)])
 
 		new_state = self.state()
 

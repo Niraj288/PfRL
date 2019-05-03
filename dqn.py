@@ -51,7 +51,7 @@ class Agent:
         else:
             # use Net policy
             state_a = np.array([self.state], copy=False)
-            state_v = torch.tensor(state_a).to(device)
+            state_v = torch.tensor(state_a, dtype = torch.float).to(device)
             q_vals_v = net(state_v)
             # get idx of best action
             _, act_v = torch.max(q_vals_v, dim=1)
@@ -81,16 +81,16 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
     #  we use the previous network to observe Q(s,a)
     
     # send the observed states to Net 
-    states_v = torch.tensor(states).to(device)
-    next_states_v = torch.tensor(next_states).to(device)
-    actions_v = torch.tensor(actions).to(device)
-    rewards_v = torch.tensor(rewards).to(device)
+    states_v = torch.tensor(states, dtype = torch.float).to(device)
+    next_states_v = torch.tensor(next_states, dtype = torch.float).to(device)
+    actions_v = torch.tensor(actions, dtype = torch.float).to(device)
+    rewards_v = torch.tensor(rewards, dtype = torch.float).to(device)
     done_mask = torch.ByteTensor(dones).to(device)
 
     # get the Network actions for given states
     #  but only for states that did not end in a 'done' state
     state_action_values = net(states_v).gather(1, actions_v.unsqueeze(-1)).squeeze(-1)
-    next_state_values = tgt_net(next_states_v).max(1)[0]
+    next_state_values = tgt_net(next_states_v.double()).max(1)[0]
     next_state_values[done_mask] = 0.0 # ensures these are only rewards
     
     # detach the calculation we just made from computation graph
