@@ -47,7 +47,7 @@ class Agent:
         # use epsilon greedy approach for explore/exploit
         if np.random.random() < epsilon:
             # use rand policy
-            action = env.action_space.sample()
+            action = self.env.sample_action_space()
         else:
             # use Net policy
             state_a = np.array([self.state], copy=False)
