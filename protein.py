@@ -98,14 +98,14 @@ class protein:
 		#name = '.'.join(f.split('/')[-1].split('.')[:-1])
 
 		st=''
-		st+='source oldff/leaprc.ff99SB\n'
+		st+='source oldff/leaprc.ff14SB\n'
 		seq = get_sequence(lines)
 		st+=name +' = sequence { '+seq+' }\n'
 
 		st+='saveoff '+name+' '+name+'_linear.lib\n'
 		st+='saveoff '+name+' '+name+'_linear.pdb\n'
 
-		st+='saveamberparm '+name+' '+' '+name+'.prmtop'+' '+name+'.xyz\n'
+		st+='saveamberparm '+name+' '+' '+name+'_r.prmtop'+' '+name+'_r.xyz\n'
 		st+='quit\n'
 
 		g = open('xleap_input','w')
@@ -226,19 +226,20 @@ class environ(protein):
 	def __init__(self, pdb, name):
 		self.name = name
 		protein.__init__(self, pdb)
-		super(environ, self).__init__()
+		#super(environ, self, pdb).__init__()
+		self.reset()
 
 	def reset(self):
 		# set dynamic coordinate to initial coordinate
 		self.dcoord = self.icoord
 		self.max_energy = 150
 		self.natoms = len(self.atoms)
-		self.directions = [[1,0,0],
+		self.directions = np.array([[1,0,0],
 							[-1,0,0],
 							[0,1,0],
 							[0,-1,0],
 							[0,0,1],
-							[0,0,-1]]
+							[0,0,-1]])
 
 		state = self.state()
 
@@ -250,7 +251,7 @@ class environ(protein):
 		return state
 
 	def state(self):
-
+		#print (self.dcoord.shape, 'dcoord')
 		M = distance_matrix(self.dcoord, self.dcoord)
 
 		return M
@@ -259,14 +260,14 @@ class environ(protein):
 
 	def step(self, action):
 		ac = np.argmax(action)
-
+		#print (ac)
 		# action space is 3N*6
 		atom_index, direcn = divmod(ac,6)
+		atom_index = atom_index/3
+		print (atom_index, direcn)
+		current_coord = self.dcoord[int(atom_index)]
+		self.dcoord[int(atom_index)] = current_coord+0.5*self.directions[direcn] # move 0.5 Angstron
 
-		current_coord = self.dcoord[atom_index]
-		new_coord = current_coord+0.5*self.directions[direcn] # move 0.5 Angstron
-
-		self.dcoord = new_coord
 
 		new_state = self.state()
 
@@ -281,12 +282,11 @@ class environ(protein):
 
 
 
-	class action_space:
-		def sample(self):
-			s = np.zeros(self.natoms*3*6) # 3N coordinates * 6 direcn
-			i = np.random.randint(self.natoms*3*6)
-			s[i] = 1.0
-			return s
+	def sample_action_space(self):
+		s = np.zeros(self.natoms*3*6) # 3N coordinates * 6 direcn
+		i = np.random.randint(self.natoms*3*6)
+		s[i] = 1.0
+		return s
 
 
 
