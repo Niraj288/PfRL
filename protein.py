@@ -306,7 +306,7 @@ class environ(protein):
 		sd = [d[i]['symbol'] for i in a]
 
 		c = self.dcoord
-		print ('Saving render data ')
+		print ('Reward:',reward)
 		f = open('render.xyz','a')
 		f.write(str(len(a))+'\nReward : '+str(reward)+'\n')
 		for j in range (len(a)):
