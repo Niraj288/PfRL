@@ -153,7 +153,7 @@ EPSILON_DECAY_LAST_FRAME = 10**5
 EPSILON_START = 1.0
 EPSILON_FINAL = 0.0
 
-MEAN_REWARD_BOUND = 150
+MEAN_REWARD_BOUND = 100000
 SYNC_TARGET_FRAMES = 500
 BATCH_SIZE = 16
 REPLAY_SIZE = 500
@@ -197,7 +197,7 @@ while True:
             best_mean_reward = mean_reward
             
         # quit if we have solved the problem
-        if mean_reward > 100:
+        if mean_reward > MEAN_REWARD_BOUND:
             print("Solved in %d frames!" % frame_idx)
             break
 
