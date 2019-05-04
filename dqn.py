@@ -58,13 +58,13 @@ class Agent:
             action = self.env.sample_action_space(int(act_v.item()))
             #print (action, 'action') 
 
-        # save coord for render
-        self.env.save_xyz(reward)
-	    
         # do step in the environment
         new_state, reward, is_done = self.env.step(action)
         self.total_reward += reward
         #new_state = new_state
+
+	# save coord for render
+        self.env.save_xyz(reward)
 
         # add to replay buffer
         exp = Experience(self.state, action, reward, is_done, new_state)
@@ -74,7 +74,8 @@ class Agent:
         if is_done:
             done_reward = self.total_reward
             self._reset()
-        return done_reward
+        return self.total_reward
+        #return done_reward
 
 
 def calc_loss(batch, net, tgt_net, device="cpu"):
@@ -153,7 +154,7 @@ EPSILON_START = 1.0
 EPSILON_FINAL = 0.0
 
 MEAN_REWARD_BOUND = 150
-SYNC_TARGET_FRAMES = 50
+SYNC_TARGET_FRAMES = 500
 BATCH_SIZE = 16
 REPLAY_SIZE = 500
 REPLAY_START_SIZE = 500
@@ -177,6 +178,7 @@ while True:
 
     # play step and add to experience buffer
     reward = agent.play_step(net, epsilon, device=device)
+    #print (reward,frame_idx)
     if reward is not None:
         total_rewards.append(reward)
         ts_frame = frame_idx
@@ -195,7 +197,7 @@ while True:
             best_mean_reward = mean_reward
             
         # quit if we have solved the problem
-        if mean_reward > 0.8:
+        if mean_reward > 100:
             print("Solved in %d frames!" % frame_idx)
             break
 
