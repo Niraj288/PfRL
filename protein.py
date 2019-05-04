@@ -269,7 +269,7 @@ class environ(protein):
 		# action space is 3N*6
 		atom_index, direcn = divmod(ac,6)
 		atom_index = atom_index/3
-		print (int(atom_index), direcn)
+		#print (int(atom_index), direcn)
 		new_coord = self.dcoord[int(atom_index)]+0.5*self.directions[direcn] # move 0.5 Angstron
 		#print (self.dcoord[int(atom_index)])
 		self.dcoord[int(atom_index)] = new_coord 
@@ -278,7 +278,7 @@ class environ(protein):
 		new_state = self.state()
 
 		reward = -self.getPE(self.dcoord) # -ve is to maximize energy
-		print ('Reward:',reward)
+		#print ('Reward:',reward)
 		is_done = False
 
 		if reward > self.max_energy:
@@ -288,8 +288,11 @@ class environ(protein):
 
 
 
-	def sample_action_space(self):
+	def sample_action_space(self, index = None):
 		s = np.zeros(self.natoms*3*6) # 3N coordinates * 6 direcn
+		if index:
+			s[index] = 1.0
+			return s
 		i = np.random.randint(self.natoms*3*6)
 		s[i] = 1.0
 		return s
