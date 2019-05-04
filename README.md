@@ -13,12 +13,12 @@ conda install -c ambermd ambertools
 
 source ~/amber/bin/amber.sh
 
-### Just run for test 
+## Just run for test (steps)
 
-Train the model for protein 1k43
-copy 1k43.pdb in some folder
-From that folder run
-'python dqn.py'
+1. Train the model for protein 1k43
+2. copy 1k43.pdb in some folder
+3. From that folder run
+4. 'python dqn.py'
 
 
 ## Protein class description
