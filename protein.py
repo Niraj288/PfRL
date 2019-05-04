@@ -271,7 +271,7 @@ class environ(protein):
 		atom_index, direcn = divmod(ac,6)
 		atom_index = atom_index/3
 		#print (int(atom_index), direcn)
-		new_coord = self.dcoord[int(atom_index)]+0.1*self.directions[direcn] # move 0.5 Angstron
+		new_coord = self.dcoord[int(atom_index)]+0.1*self.directions[direcn] # move 0.1 Angstron
 		#print (self.dcoord[int(atom_index)])
 		self.dcoord[int(atom_index)] = new_coord 
 		#print (self.dcoord[int(atom_index)])
