@@ -233,19 +233,19 @@ class environ(protein):
 		self.name = name
 		protein.__init__(self, pdb)
 		#super(environ, self, pdb).__init__()
+		self.natoms = len(self.atoms)
+		self.directions = np.array([[1,0,0],
+                                            [-1,0,0],
+                                            [0,1,0],
+                                            [0,-1,0],
+                                            [0,0,1],
+                                            [0,0,-1]])
 		self.reset()
 
 	def reset(self):
 		# set dynamic coordinate to initial coordinate
-		self.dcoord = self.icoord
-		self.max_energy = 150
-		self.natoms = len(self.atoms)
-		self.directions = np.array([[1,0,0],
-							[-1,0,0],
-							[0,1,0],
-							[0,-1,0],
-							[0,0,1],
-							[0,0,-1]])
+		self.dcoord = np.copy(self.icoord)
+		self.nframes = 0
 
 		state = self.state()
 
@@ -271,7 +271,7 @@ class environ(protein):
 		atom_index, direcn = divmod(ac,6)
 		atom_index = atom_index/3
 		#print (int(atom_index), direcn)
-		new_coord = self.dcoord[int(atom_index)]+0.5*self.directions[direcn] # move 0.5 Angstron
+		new_coord = self.dcoord[int(atom_index)]+0.1*self.directions[direcn] # move 0.5 Angstron
 		#print (self.dcoord[int(atom_index)])
 		self.dcoord[int(atom_index)] = new_coord 
 		#print (self.dcoord[int(atom_index)])
@@ -282,8 +282,10 @@ class environ(protein):
 		#print ('Reward:',reward)
 		is_done = False
 
-		if reward > self.max_energy:
+		if self.nframes > 500:
+			#print ('done')
 			is_done = True
+		self.nframes += 1
 
 		return new_state, reward, is_done
 
@@ -299,16 +301,17 @@ class environ(protein):
 		return s
 
 	def save_xyz(self, reward = 0):
-		ad = ad.data(sys.argv[0])
+		d = ad.data(sys.argv[0])
 		a = self.atoms
-		sd = [ad[i]['symbol'] for i in a]
+		sd = [d[i]['symbol'] for i in a]
 
 		c = self.dcoord
-
+		print ('Saving render data ')
 		f = open('render.xyz','a')
 		f.write(str(len(a))+'\nReward : '+str(reward)+'\n')
 		for j in range (len(a)):
 			st = sd[j]+' '+' '.join(list(map(str,c[j])))+'\n'
+			f.write(st)
 		f.close()
 
 
