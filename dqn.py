@@ -64,7 +64,7 @@ class Agent:
         #new_state = new_state
 
 	# save coord for render
-        self.env.save_xyz(reward)
+        #self.env.save_xyz(reward)
 
         # add to replay buffer
         exp = Experience(self.state, action, reward, is_done, new_state)
