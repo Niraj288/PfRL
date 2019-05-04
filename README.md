@@ -15,10 +15,10 @@ source ~/amber/bin/amber.sh
 
 ## Just run for test (steps)
 
-1. Train the model for protein 1k43
-2. copy 1k43.pdb in some folder
-3. From that folder run
-4. 'python dqn.py'
+Train the model for protein 1k43
+1. copy 1k43.pdb in some folder
+2. From that folder run
+3. 'python dqn.py'
 
 
 ## Protein class description
