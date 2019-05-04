@@ -55,9 +55,9 @@ class Agent:
             q_vals_v = net(state_v)
             # get idx of best action
             _, act_v = torch.max(q_vals_v, dim=1)
-            action = int(act_v.item())
-
-        # do step in the environment
+            action = self.env.sample_action_space(int(act_v.item()))
+            #print (action, 'action') 
+	# do step in the environment
         new_state, reward, is_done = self.env.step(action)
         self.total_reward += reward
         #new_state = new_state
@@ -82,16 +82,16 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
     # send the observed states to Net 
     states_v = torch.tensor(states, dtype = torch.float).to(device)
     next_states_v = torch.tensor(next_states, dtype = torch.float).to(device)
-    actions_v = torch.tensor(actions).to(device, dtype = torch.long)
+    actions_v = torch.tensor(actions, dtype = torch.long).to(device)
     rewards_v = torch.tensor(rewards, dtype = torch.float).to(device)
     done_mask = torch.ByteTensor(dones).to(device)
 
     # get the Network actions for given states
     #  but only for states that did not end in a 'done' state
-    #print (net(states_v).shape, actions_v.view(-1, 4248).unsqueeze(-1).shape)
-    state_action_values = net(states_v).gather(1, actions_v.unsqueeze(-1)).squeeze(-1)
+    # print (net(states_v).view(-1,4248,1).shape, actions_v.unsqueeze(-1).shape)
+    state_action_values = net(states_v).view(-1, actions_v.shape[1], 1).gather(1, actions_v.unsqueeze(-1)).squeeze(-1).max(1)[0]
     next_state_values = tgt_net(next_states_v).max(1)[0]
-    print (state_action_values.shape, next_state_values.shape)
+    #print ('Working')
     next_state_values[done_mask] = 0.0 # ensures these are only rewards
     
     # detach the calculation we just made from computation graph
