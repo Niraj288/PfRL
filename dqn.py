@@ -57,7 +57,11 @@ class Agent:
             _, act_v = torch.max(q_vals_v, dim=1)
             action = self.env.sample_action_space(int(act_v.item()))
             #print (action, 'action') 
-	# do step in the environment
+
+        # save coord for render
+        self.env.save_xyz(reward)
+	    
+        # do step in the environment
         new_state, reward, is_done = self.env.step(action)
         self.total_reward += reward
         #new_state = new_state

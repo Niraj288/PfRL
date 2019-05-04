@@ -2,6 +2,7 @@ import sys
 import os
 import numpy as np
 from scipy.spatial import distance_matrix
+import atom_data as ad 
 
 class protein:
 	def __init__(self, pdb_file, name = 'Environment not set'):
@@ -296,6 +297,21 @@ class environ(protein):
 		i = np.random.randint(self.natoms*3*6)
 		s[i] = 1.0
 		return s
+
+	def save_xyz(self, reward = 0):
+		ad = ad.data(sys.argv[0])
+		a = self.atoms
+		sd = [ad[i]['symbol'] for i in a]
+
+		c = self.dcoord
+
+		f = open('render.xyz','a')
+		f.write(str(len(a))+'\nReward : '+str(reward)+'\n')
+		for j in range (len(a)):
+			st = sd[j]+' '+' '.join(list(map(str,c[j])))+'\n'
+		f.close()
+
+
 
 
 
