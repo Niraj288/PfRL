@@ -2,7 +2,9 @@ import sys
 import os
 import numpy as np
 from scipy.spatial import distance_matrix
-import atom_data as ad 
+import scipy.spatial as spatial
+import atom_data as ad
+import math 
 
 class protein:
 	def __init__(self, pdb_file, name = 'Environment not set'):
@@ -58,6 +60,8 @@ class protein:
 
 		print ('Making single point energy input ...')
 		self.sp_input()
+
+		self.getConn()
 
 	def make_xleap_input(self, name):
 
@@ -217,13 +221,55 @@ class protein:
 		lines = g.readlines()
 		g.close()
 
+		PE = 0.0
+
 		for line in lines:
 			if 'Etot   = ' in line:
 				if '*' in line:
-					return 999999999
-				return float(line.strip().split()[-1])
+					PE = 9999999999
+				PE = float(line.strip().split()[-1])
+				#print (PE)
+				break
+		# Harmonic potential
+		coord = coord.reshape((-1,3))
+		HE = 0.0
+		for t in self.conn:
+			a,b = t
+			dis = self.distance(coord[a], coord[b])
+			diff = dis - self.conn[t]
+			if diff > 0.8:
+				HE += 10000*diff**2
+		if PE == 0.0:
+			raise Exception('Something wrong while evaluating PE output')
+		return PE+HE
 
-		raise Exception('Something wrong while evaluating PE output')
+	def distance(self,a,b):
+	    a = list(map(float,a))
+	    b = list(map(float,b))
+	    return math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2)
+
+	def getConn(self):
+		a = self.atoms
+		d = {}
+		point_tree = spatial.cKDTree(self.icoord)
+		for i in range (self.icoord.shape[0]):
+			li=(point_tree.query_ball_point(self.icoord[i], 4.0))
+			for j in li:
+				if i == j:
+					continue
+				at = [self.atoms[i], self.atoms[j]]
+				at.sort()
+				dis = self.distance(self.icoord[j], self.icoord[i])
+				if at[-1] > 10:
+					if dis > 3.5:
+						continue
+				elif dis > 1.5:
+					continue
+				l2 = [i,j]
+				l2.sort()		
+				d[tuple(l2)] = self.distance(self.icoord[j], self.icoord[i])
+		self.conn = d
+		return 
 
 	def __str__(self):
 		return self.name 
@@ -245,7 +291,7 @@ class environ(protein):
 	def reset(self):
 		# set dynamic coordinate to initial coordinate
 		self.dcoord = np.copy(self.icoord)
-		self.nframes = 0
+		self.nframes = 1
 
 		state = self.state()
 
@@ -266,7 +312,7 @@ class environ(protein):
 
 	def step(self, action):
 		ac = np.argmax(action)
-		#print (ac)
+		#print (self.nframes,'frame')
 		# action space is 3N*6
 		atom_index, direcn = divmod(ac,6)
 		atom_index = atom_index/3
@@ -282,7 +328,7 @@ class environ(protein):
 		#print ('Reward:',reward)
 		is_done = False
 
-		if self.nframes > 500:
+		if self.nframes >= 50:
 			#print ('done')
 			is_done = True
 		self.nframes += 1
@@ -306,7 +352,7 @@ class environ(protein):
 		sd = [d[i]['symbol'] for i in a]
 
 		c = self.dcoord
-		print ('Saving render data ')
+		print ('Reward:',reward)
 		f = open('render.xyz','a')
 		f.write(str(len(a))+'\nReward : '+str(reward)+'\n')
 		for j in range (len(a)):
@@ -333,6 +379,9 @@ if __name__ == '__main__':
 	print (e)
 
 	print (p.atoms)
+
+	#print (p.getConn())
+
 
 
 
