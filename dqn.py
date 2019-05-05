@@ -154,10 +154,10 @@ EPSILON_START = 1.0
 EPSILON_FINAL = 0.0
 
 MEAN_REWARD_BOUND = 100000
-SYNC_TARGET_FRAMES = 500
+SYNC_TARGET_FRAMES = 50
 BATCH_SIZE = 16
-REPLAY_SIZE = 500
-REPLAY_START_SIZE = 500
+REPLAY_SIZE = 50
+REPLAY_START_SIZE = 50
 LEARNING_RATE = 1e-4
 
 buffer = ExperienceBuffer(REPLAY_SIZE)
@@ -178,7 +178,7 @@ while True:
 
     # play step and add to experience buffer
     reward = agent.play_step(net, epsilon, device=device)
-    #print (reward,frame_idx)
+    #print ('trueframe',frame_idx)
     if reward is not None:
         total_rewards.append(reward)
         ts_frame = frame_idx
