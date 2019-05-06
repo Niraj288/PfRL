@@ -20,13 +20,15 @@ class Net(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_size, int(hidden_size/2)),
             nn.ReLU(),
-            nn.Linear(int(hidden_size/2), n_actions)
+            nn.Linear(int(hidden_size/2), int(hidden_size/4)),
+	    nn.ReLU(),
+            nn.Linear(int(hidden_size/4), n_actions)
         )
 
     def forward(self, x):
         return self.net(x)
 
-HIDDEN_SIZE = 256
+HIDDEN_SIZE = 2560
 
 obs_size = env.obs_size
 n_actions = env.n_actions
@@ -37,8 +39,9 @@ test_net.load_state_dict(torch.load("models/model-best.dat", map_location=lambda
 RENDER = 1
 
 if RENDER:
-	os.system('remove -rf render.xyz')
+	os.system('rm -rf render.xyz')
 
+env.SYNC_TARGET_FRAMES = 2000
 state = env.reset()
 total_reward = 0.0
 c = collections.Counter()
