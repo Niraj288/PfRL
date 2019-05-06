@@ -56,7 +56,7 @@ class Agent:
             # get idx of best action
             _, act_v = torch.max(q_vals_v, dim=1)
             action = self.env.sample_action_space(int(act_v.item()))
-            #print (action, 'action') 
+        #print (np.argmax(action), 'action') 
 
         # do step in the environment
         new_state, reward, is_done = self.env.step(action)
@@ -72,10 +72,10 @@ class Agent:
         self.state = new_state
         
         if is_done:
-            done_reward = self.total_reward
+            done_reward = reward #self.total_reward
             self._reset()
-        return self.total_reward
-        #return done_reward
+        #return self.total_reward
+        return done_reward
 
 
 def calc_loss(batch, net, tgt_net, device="cpu"):
@@ -132,13 +132,15 @@ class Net(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_size, int(hidden_size/2)),
             nn.ReLU(),
-            nn.Linear(int(hidden_size/2), n_actions)
+            nn.Linear(int(hidden_size/2), int(hidden_size/4)),
+	    nn.ReLU(),
+            nn.Linear(int(hidden_size/4), n_actions)
         )
 
     def forward(self, x):
         return self.net(x)
 
-HIDDEN_SIZE = 256
+HIDDEN_SIZE = 2560
 
 net = Net(obs_size, HIDDEN_SIZE, n_actions)
 tgt_net = Net(obs_size, HIDDEN_SIZE, n_actions)
@@ -151,18 +153,20 @@ device = "cpu"
 
 EPSILON_DECAY_LAST_FRAME = 10**5
 EPSILON_START = 1.0
-EPSILON_FINAL = 0.0
+EPSILON_FINAL = 0.2
 
 MEAN_REWARD_BOUND = 100000
-SYNC_TARGET_FRAMES = 50
+SYNC_TARGET_FRAMES = 100
 BATCH_SIZE = 16
-REPLAY_SIZE = 50
-REPLAY_START_SIZE = 50
+REPLAY_SIZE = 100
+REPLAY_START_SIZE = 100
 LEARNING_RATE = 1e-4
 
 buffer = ExperienceBuffer(REPLAY_SIZE)
 agent = Agent(env, buffer)
 epsilon = EPSILON_START
+
+env.SYNC_TARGET_FRAMES = SYNC_TARGET_FRAMES
 
 optimizer = optim.Adam(net.parameters(), lr=LEARNING_RATE)
 total_rewards = []

@@ -5,6 +5,7 @@ from scipy.spatial import distance_matrix
 import scipy.spatial as spatial
 import atom_data as ad
 import math 
+from math import log10, floor
 
 class protein:
 	def __init__(self, pdb_file, name = 'Environment not set'):
@@ -195,6 +196,9 @@ class protein:
 				ref = 1
 		self.atoms = li 
 
+	def round_sig(self, x, sig=2):
+		return round(x, sig-int(floor(log10(abs(x))))-1)
+
 	# get potential energy
 	def getPE(self, coord):
 		a,b = coord.shape
@@ -205,7 +209,8 @@ class protein:
 			li = []
 			for j in range (i,i+6):
 				if len(str(coord[j])) > 10:
-					coord[j] = float(str(coord[j])[:12])
+					coord[j] = self.round_sig(coord[j],9)
+					#coord[j] = float(str(coord[j])[:12])
 			st_coord += "{:>12}{:>12}{:>12}{:>12}{:>12}{:>12}".format(*coord[i:i+6])+'\n'
 
 		f = open(self.namer+'_temp.xyz', 'w')
@@ -227,7 +232,8 @@ class protein:
 			if 'Etot   = ' in line:
 				if '*' in line:
 					PE = 9999999999
-				PE = float(line.strip().split()[-1])
+				else:
+					PE = float(line.strip().split()[-1])
 				#print (PE)
 				break
 		# Harmonic potential
@@ -241,6 +247,7 @@ class protein:
 				HE += 10000*diff**2
 		if PE == 0.0:
 			raise Exception('Something wrong while evaluating PE output')
+		#print (HE)
 		return PE+HE
 
 	def distance(self,a,b):
@@ -277,8 +284,12 @@ class protein:
 class environ(protein):
 	def __init__(self, pdb, name):
 		self.name = name
+		self.SYNC_TARGET_FRAMES = 100
 		protein.__init__(self, pdb)
-		#super(environ, self, pdb).__init__()
+		self.dcoord = np.copy(self.icoord)
+		
+		# upper triangle idexes
+		self.iu = np.triu_indices(len(self.atoms))
 		self.natoms = len(self.atoms)
 		self.directions = np.array([[1,0,0],
                                             [-1,0,0],
@@ -289,26 +300,40 @@ class environ(protein):
 		self.reset()
 
 	def reset(self):
-		# set dynamic coordinate to initial coordinate
-		self.dcoord = np.copy(self.icoord)
-		self.nframes = 1
+                #print('reset called')
+                # set dynamic coordinate to initial coordinate
+                ind = np.random.choice([1,0])
+                if ind:
+                        self.dcoord = np.copy(self.icoord)
+                        print('actual reset')
+                self.nframes = 1
 
-		state = self.state()
+                state = self.state()
 
-		# specific to pairwise state
-		l = state.shape[0]
-		self.obs_size = l
+                # specific to pairwise state
+                l = state.shape[0]
+                self.obs_size = l
 
-		self.n_actions = 3*self.natoms*6
-		return state
+                self.n_actions = 3*self.natoms*6
+                return state
 
 	def state(self):
 		#print (self.dcoord.shape, 'dcoord')
 		M = distance_matrix(self.dcoord, self.dcoord)
 
-		return M.flatten()
+		# take upper triangle
+		M = M[self.iu]
+		
+		M = M.flatten()
+		
+		'''
+		# for adding previous 5 frames
+		if M.shape[0] < 5*self.iu.shape[0]:
+			for j in range (
+		'''
+		return M
 
-		# Make M upper triangle pairwise distances
+		# Made M upper triangle pairwise distances
 
 	def step(self, action):
 		ac = np.argmax(action)
@@ -317,7 +342,7 @@ class environ(protein):
 		atom_index, direcn = divmod(ac,6)
 		atom_index = atom_index/3
 		#print (int(atom_index), direcn)
-		new_coord = self.dcoord[int(atom_index)]+0.1*self.directions[direcn] # move 0.1 Angstron
+		new_coord = self.dcoord[int(atom_index)]+0.02*self.directions[direcn] # move 0.01 Angstron
 		#print (self.dcoord[int(atom_index)])
 		self.dcoord[int(atom_index)] = new_coord 
 		#print (self.dcoord[int(atom_index)])
@@ -328,7 +353,7 @@ class environ(protein):
 		#print ('Reward:',reward)
 		is_done = False
 
-		if self.nframes >= 50:
+		if self.nframes >= self.SYNC_TARGET_FRAMES:
 			#print ('done')
 			is_done = True
 		self.nframes += 1
