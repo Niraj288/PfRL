@@ -205,13 +205,15 @@ class protein:
 		coord = coord.reshape((-1))
 
 		st_coord = 'Temporary file\n'+str(a)+'\n'
-		for i in range (0, len(coord), 6):
+		for i in range (0, a*b, 6):
 			li = []
-			for j in range (i,i+6):
+			for j in range (i,min(i+6, a*b)):
 				if len(str(coord[j])) > 10:
 					coord[j] = self.round_sig(coord[j],9)
-					#coord[j] = float(str(coord[j])[:12])
-			st_coord += "{:>12}{:>12}{:>12}{:>12}{:>12}{:>12}".format(*coord[i:i+6])+'\n'
+			if min(i+6, a*b) == a*b:#coord[j] = float(str(coord[j])[:12])
+				st_coord += "{:>12}{:>12}{:>12}".format(*coord[i:a*b])+'\n'
+			else:
+				st_coord += "{:>12}{:>12}{:>12}{:>12}{:>12}{:>12}".format(*coord[i:min(i+6, a*b)])+'\n'
 
 		f = open(self.namer+'_temp.xyz', 'w')
 		f.write(st_coord)
@@ -288,7 +290,7 @@ class environ(protein):
 		protein.__init__(self, pdb)
 		self.dcoord = np.copy(self.icoord)
 		
-		# upper triangle idexes
+		# indexes for upper triangle
 		self.iu = np.triu_indices(len(self.atoms))
 		self.natoms = len(self.atoms)
 		self.directions = np.array([[1,0,0],
@@ -302,7 +304,7 @@ class environ(protein):
 	def reset(self):
                 #print('reset called')
                 # set dynamic coordinate to initial coordinate
-                ind = np.random.choice([1,0])
+                ind = 1#np.random.choice([1,0])
                 if ind:
                         self.dcoord = np.copy(self.icoord)
                         print('actual reset')
@@ -314,7 +316,7 @@ class environ(protein):
                 l = state.shape[0]
                 self.obs_size = l
 
-                self.n_actions = 3*self.natoms*6
+                self.n_actions = self.natoms*6
                 return state
 
 	def state(self):
@@ -338,9 +340,9 @@ class environ(protein):
 	def step(self, action):
 		ac = np.argmax(action)
 		#print (self.nframes,'frame')
-		# action space is 3N*6
+		# action space is N*6
 		atom_index, direcn = divmod(ac,6)
-		atom_index = atom_index/3
+		atom_index = atom_index
 		#print (int(atom_index), direcn)
 		new_coord = self.dcoord[int(atom_index)]+0.02*self.directions[direcn] # move 0.02 Angstron
 		#print (self.dcoord[int(atom_index)])
@@ -363,11 +365,11 @@ class environ(protein):
 
 
 	def sample_action_space(self, index = None):
-		s = np.zeros(self.natoms*3*6) # 3N coordinates * 6 direcn
+		s = np.zeros(self.natoms*6) # N coordinates * 6 direcn
 		if index:
 			s[index] = 1.0
 			return s
-		i = np.random.randint(self.natoms*3*6)
+		i = np.random.randint(self.natoms*6)
 		s[i] = 1.0
 		return s
 
