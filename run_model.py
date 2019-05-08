@@ -3,13 +3,13 @@ import time
 import numpy as np
 import torch.nn as nn
 import torch
-from protein import environ
+from protein import environ, environ_coord
 import collections
 import os
 
 DEFAULT_ENV_NAME = "Protein folding"
 device = "cpu"
-env = environ('1k43.pdb',DEFAULT_ENV_NAME)
+env = environ_coord('1k43.pdb',DEFAULT_ENV_NAME)
 
 print (env)
 

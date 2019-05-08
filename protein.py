@@ -1,3 +1,4 @@
+from sklearn.preprocessing import MinMaxScaler
 import sys
 import os
 import numpy as np
@@ -245,7 +246,7 @@ class protein:
 			a,b = t
 			dis = self.distance(coord[a], coord[b])
 			diff = dis - self.conn[t]
-			if diff > 0.8:
+			if diff > 1.0:
 				HE += 10000*diff**2
 		if PE == 0.0:
 			raise Exception('Something wrong while evaluating PE output')
@@ -288,11 +289,18 @@ class environ(protein):
 		self.name = name
 		self.SYNC_TARGET_FRAMES = 100
 		protein.__init__(self, pdb)
-		self.dcoord = np.copy(self.icoord)
+
+		self.natoms = len(self.atoms)
+
+		# add random noise to  initial coordinates
+		noise = np.random.normal(0,0.5,self.natoms*3).reshape((self.natoms, 3))
+		self.dcoord = np.copy(self.icoord + noise)
+		
+		#self.dcoord = np.copy(self.icoord)
 		
 		# indexes for upper triangle
-		self.iu = np.triu_indices(len(self.atoms))
-		self.natoms = len(self.atoms)
+		self.iu = np.triu_indices(self.natoms)
+		
 		self.directions = np.array([[1,0,0],
                                             [-1,0,0],
                                             [0,1,0],
@@ -302,22 +310,22 @@ class environ(protein):
 		self.reset()
 
 	def reset(self):
-                #print('reset called')
-                # set dynamic coordinate to initial coordinate
-                ind = 1#np.random.choice([1,0])
-                if ind:
-                        self.dcoord = np.copy(self.icoord)
-                        print('actual reset')
-                self.nframes = 1
+	        #print('reset called')
+	        # set dynamic coordinate to initial coordinate
+	        ind = 1#np.random.choice([1,0])
+	        if ind:
+	                self.dcoord = np.copy(self.icoord)
+	                #print('actual reset')
+	        self.nframes = 1
 
-                state = self.state()
+	        state = self.state()
 
-                # specific to pairwise state
-                l = state.shape[0]
-                self.obs_size = l
+	        # specific to pairwise state
+	        l = state.shape[0]
+	        self.obs_size = l
 
-                self.n_actions = self.natoms*6
-                return state
+	        self.n_actions = self.natoms*6
+	        return state
 
 	def state(self):
 		#print (self.dcoord.shape, 'dcoord')
@@ -344,7 +352,7 @@ class environ(protein):
 		atom_index, direcn = divmod(ac,6)
 		atom_index = atom_index
 		#print (int(atom_index), direcn)
-		new_coord = self.dcoord[int(atom_index)]+0.02*self.directions[direcn] # move 0.02 Angstron
+		new_coord = self.dcoord[int(atom_index)]+0.05*self.directions[direcn] # move 0.05 Angstron
 		#print (self.dcoord[int(atom_index)])
 		self.dcoord[int(atom_index)] = new_coord 
 		#print (self.dcoord[int(atom_index)])
@@ -388,8 +396,21 @@ class environ(protein):
 		f.close()
 
 
+class environ_coord(environ):
+        def state(self):
+                a = np.array(self.atoms).reshape((-1,1))
+                c = np.copy(self.dcoord)
+                min_max_scaler = MinMaxScaler()
+                c = min_max_scaler.fit_transform(c)
+                M1 = np.concatenate((a,c), axis = 1).flatten()
+                M2 = distance_matrix(self.dcoord, self.dcoord)
 
+                # take upper triangle
+                M2 = M2[self.iu]
 
+                M2 = M2.flatten()
+                M = np.concatenate((M1, M2), axis = None)
+                return M.flatten()
 
 if __name__ == '__main__':
 
@@ -408,6 +429,7 @@ if __name__ == '__main__':
 	print (p.atoms)
 
 	#print (p.getConn())
+
 
 
 

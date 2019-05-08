@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 #import gym
-from protein import environ
+from protein import environ, environ_coord
 
 GAMMA = 0.9
 
@@ -115,7 +115,7 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
 
 DEFAULT_ENV_NAME = "Protein folding"
 
-env = environ('1k43.pdb',DEFAULT_ENV_NAME)
+env = environ_coord('1k43.pdb',DEFAULT_ENV_NAME)
 
 print (env)
 
