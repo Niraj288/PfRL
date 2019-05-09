@@ -188,7 +188,7 @@ while True:
         ts_frame = frame_idx
         
         # calculate progress of rewards
-        mean_reward = np.mean(total_rewards[-100:])
+        mean_reward = np.mean(total_rewards[-1]) # CHANGED TO FINAL REWARD
         if frame_idx % 100==0:
             print("%d: done %d iterations, mean reward %.3f, eps %.2f" % (
                 frame_idx, len(total_rewards), mean_reward, epsilon
