@@ -412,6 +412,57 @@ class environ_coord(environ):
                 M = np.concatenate((M1, M2), axis = None)
                 return M.flatten()
 
+class environ_grid(environ):
+        def initialize(self):
+                self.name = '.'.join(self.pdb_file.split('/')[-1].split('.')[:-1])
+                print ('Making pdb file with the first frame (_f1.pdb) ...')
+                self.truncate_pdb()
+
+                self.res_arr = self.make_xleap_input_sequence(self.name+'_r.pdb', self.name)
+
+                self.icoord = self.make_and_assign_3Dgrid()
+                # initial grid
+
+        def make_and_assign_3Dgrid(self):
+                l = arr.shape[0]+2
+                grid = np.zeros((l,l,l))
+                for i in range (len(self.res_arr)):
+                        grid[i+1, i+1, i+1] = self.res_arr[i]
+                return grid
+
+
+        def make_xleap_input_sequence(self, f, name):
+
+                def get_sequence(lines):
+                        d={}
+                        for line in lines:
+                                if "TER" in line.split()[0]:
+                                        break
+                                if line.split()[0] in ['ATOM','HETATM']:
+                                        #print line
+                                        id,at,rt,_,_0,x,y,z=line.strip().split()[1:9]
+                                        s=line.strip().split()[-1]
+                                        d[int(_0)]=rt
+                        print (d)
+                        arr = [d[i] for i in range (1,len(d)+1)]
+                        return arr
+
+                file = open(f,'r')
+                lines= file.readlines()
+                file.close()
+
+                seq = get_sequence(lines)
+                d = {}
+                for i in range (len(seq)):
+                        if seq[i] in d:
+                                seq[i] = d[seq[i]]
+                        else:
+                                d[seq[i]] = len(d)
+                                seq[i] = d[seq[i]]
+
+                return seq
+
+
 if __name__ == '__main__':
 
 	# pdb file
