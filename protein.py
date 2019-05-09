@@ -289,6 +289,9 @@ class environ(protein):
 		self.name = name
 		self.SYNC_TARGET_FRAMES = 100
 		protein.__init__(self, pdb)
+		self.init_args()
+
+	def init_args(self):
 
 		self.natoms = len(self.atoms)
 
@@ -412,7 +415,13 @@ class environ_coord(environ):
                 M = np.concatenate((M1, M2), axis = None)
                 return M.flatten()
 
-class environ_grid(environ):
+class environ_grid(protein):
+		def __init__(self, pdb, name):
+				self.name = name
+				self.SYNC_TARGET_FRAMES = 100
+				protein.__init__(self, pdb)
+				self.init_args()
+
         def initialize(self):
                 self.name = '.'.join(self.pdb_file.split('/')[-1].split('.')[:-1])
                 print ('Making pdb file with the first frame (_f1.pdb) ...')
@@ -420,11 +429,95 @@ class environ_grid(environ):
 
                 self.res_arr = self.make_xleap_input_sequence(self.name+'_r.pdb', self.name)
 
-                self.icoord = self.make_and_assign_3Dgrid()
+                self.igrid = self.make_and_assign_3Dgrid()
                 # initial grid
 
+        def init_args(self):
+        		self.dgrid = np.copy(self.igrid)
+        		state = self.reset()
+        		l = state.shape[0]
+		        self.obs_size = l
+
+		        self.n_actions = len(self.res_arr)*14
+
+		        # Make final conformation grid
+		        self.fgrid = self.make_fgrid()
+
+		def make_fgrid(self):
+
+				def is_backbone(r,st):
+					    l=len(r)
+					    l_=st[l:]
+					    if len(l_)==0 or l_.isdigit() or l_ == 'A':
+					        return True
+					    return False
+
+				def data_extraction(lines):
+					    
+					    d={}
+					    l = {}
+					    for line in list1:
+						        if "ENDMDL" in line.split()[0]:
+						            break
+						        if line.split()[0] in ['ATOM']:
+						            #print line
+						            id,at,rt,_,_0,x,y,z=line.strip().split()[1:9]
+						            s=line.strip().split()[-1]
+						            if is_backbone(s, at):
+								            if rt not in d:
+								            		l[rt] = len(d)
+								            		d[rt]=[[x, y, z]]
+								            else:
+								            		d[rt].append([x, y, z])
+						return d, l 
+
+				def get_quad(vec, cur):
+					x, y, z = vec
+					if x >= 0:
+						
+
+
+				def get_grid():
+						f = open(self.pdb_file)
+						lines = f.readlines()
+						f.close()
+
+						d, l = data_extraction(lines)
+						lis = []
+
+						r_coord = []
+						for i in range (len(l)):
+								# centre point of residue
+								r_coord.append(np.array(d[l[i]]).mean(axis = 1))
+
+						l = len(self.res_arr)+2
+						grid = np.zeros((l, l, l))
+
+						# first residue at 0,0,0
+						cur = (0,0,0)
+
+						trace_r = {1:cur} # track where residues are placed
+
+						for j in range (1, len(r_coord)):
+								vec = r_coord[j] - r_coord[0]
+								cur = get_quad(vec, cur) # get current grid place
+								trace_r = {j:cur} 
+
+						# transform the central residue to 0,0,0
+						cen = np.array(trace_r[int(len(l)/2)])
+						for i in range (len(trace_r)):
+								trace_r[i] = tuple(np.array(trace_r[i]) - cen)
+
+						for t in trace_r:
+								grid[trace_r[t]] = t   
+
+
+
+
+
+
         def make_and_assign_3Dgrid(self):
-                l = arr.shape[0]+2
+                l = len(self.res_arr)+2
                 grid = np.zeros((l,l,l))
                 for i in range (len(self.res_arr)):
                         grid[i+1, i+1, i+1] = self.res_arr[i]
@@ -461,6 +554,87 @@ class environ_grid(environ):
                                 seq[i] = d[seq[i]]
 
                 return seq
+
+        def reset(self):
+		        #print('reset called')
+		        # set dynamic coordinate to initial coordinate
+		        ind = 1#np.random.choice([1,0])
+		        if ind:
+		                self.dcoord = np.copy(self.icoord)
+		                #print('actual reset')
+		        self.nframes = 1
+
+		        state = self.state()
+
+		        return state
+
+		def state(self):
+				#print (self.dcoord.shape, 'dcoord')
+				M = distance_matrix(self.dcoord, self.dcoord)
+
+				# take upper triangle
+				M = M[self.iu]
+				
+				M = M.flatten()
+				
+				'''
+				# for adding previous 5 frames
+				if M.shape[0] < 5*self.iu.shape[0]:
+					for j in range (
+				'''
+				return M
+
+				# Made M upper triangle pairwise distances
+
+		def step(self, action):
+				ac = np.argmax(action)
+				#print (self.nframes,'frame')
+				# action space is N*6
+				atom_index, direcn = divmod(ac,6)
+				atom_index = atom_index
+				#print (int(atom_index), direcn)
+				new_coord = self.dcoord[int(atom_index)]+0.05*self.directions[direcn] # move 0.05 Angstron
+				#print (self.dcoord[int(atom_index)])
+				self.dcoord[int(atom_index)] = new_coord 
+				#print (self.dcoord[int(atom_index)])
+
+				new_state = self.state()
+
+				reward = -self.getPE(self.dcoord) # -ve is to maximize energy
+				#print ('Reward:',reward)
+				is_done = False
+
+				if self.nframes >= self.SYNC_TARGET_FRAMES:
+					#print ('done')
+					is_done = True
+				self.nframes += 1
+
+				return new_state, reward, is_done
+
+
+
+		def sample_action_space(self, index = None):
+				s = np.zeros(self.natoms*6) # N coordinates * 6 direcn
+				if index:
+					s[index] = 1.0
+					return s
+				i = np.random.randint(self.natoms*6)
+				s[i] = 1.0
+				return s
+
+		def save_xyz(self, reward = 0):
+				d = ad.data(sys.argv[0])
+				a = self.atoms
+				sd = [d[i]['symbol'] for i in a]
+
+				c = self.dcoord
+				print ('Reward:',reward)
+				f = open('render.xyz','a')
+				f.write(str(len(a))+'\nReward : '+str(reward)+'\n')
+				for j in range (len(a)):
+					st = sd[j]+' '+' '.join(list(map(str,c[j])))+'\n'
+					f.write(st)
+				f.close()
 
 
 if __name__ == '__main__':
