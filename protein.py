@@ -1,8 +1,12 @@
+from sklearn.preprocessing import MinMaxScaler
 import sys
 import os
 import numpy as np
 from scipy.spatial import distance_matrix
-import atom_data as ad 
+import scipy.spatial as spatial
+import atom_data as ad
+import math 
+from math import log10, floor
 
 class protein:
 	def __init__(self, pdb_file, name = 'Environment not set'):
@@ -58,6 +62,8 @@ class protein:
 
 		print ('Making single point energy input ...')
 		self.sp_input()
+
+		self.getConn()
 
 	def make_xleap_input(self, name):
 
@@ -191,18 +197,24 @@ class protein:
 				ref = 1
 		self.atoms = li 
 
+	def round_sig(self, x, sig=2):
+		return round(x, sig-int(floor(log10(abs(x))))-1)
+
 	# get potential energy
 	def getPE(self, coord):
 		a,b = coord.shape
 		coord = coord.reshape((-1))
 
 		st_coord = 'Temporary file\n'+str(a)+'\n'
-		for i in range (0, len(coord), 6):
+		for i in range (0, a*b, 6):
 			li = []
-			for j in range (i,i+6):
+			for j in range (i,min(i+6, a*b)):
 				if len(str(coord[j])) > 10:
-					coord[j] = float(str(coord[j])[:12])
-			st_coord += "{:>12}{:>12}{:>12}{:>12}{:>12}{:>12}".format(*coord[i:i+6])+'\n'
+					coord[j] = self.round_sig(coord[j],9)
+			if min(i+6, a*b) == a*b:#coord[j] = float(str(coord[j])[:12])
+				st_coord += "{:>12}{:>12}{:>12}".format(*coord[i:a*b])+'\n'
+			else:
+				st_coord += "{:>12}{:>12}{:>12}{:>12}{:>12}{:>12}".format(*coord[i:min(i+6, a*b)])+'\n'
 
 		f = open(self.namer+'_temp.xyz', 'w')
 		f.write(st_coord)
@@ -217,13 +229,57 @@ class protein:
 		lines = g.readlines()
 		g.close()
 
+		PE = 0.0
+
 		for line in lines:
 			if 'Etot   = ' in line:
 				if '*' in line:
-					return 999999999
-				return float(line.strip().split()[-1])
+					PE = 9999999999
+				else:
+					PE = float(line.strip().split()[-1])
+				#print (PE)
+				break
+		# Harmonic potential
+		coord = coord.reshape((-1,3))
+		HE = 0.0
+		for t in self.conn:
+			a,b = t
+			dis = self.distance(coord[a], coord[b])
+			diff = dis - self.conn[t]
+			if diff > 1.0:
+				HE += 10000*diff**2
+		if PE == 0.0:
+			raise Exception('Something wrong while evaluating PE output')
+		#print (HE)
+		return PE+HE
 
-		raise Exception('Something wrong while evaluating PE output')
+	def distance(self,a,b):
+	    a = list(map(float,a))
+	    b = list(map(float,b))
+	    return math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2)
+
+	def getConn(self):
+		a = self.atoms
+		d = {}
+		point_tree = spatial.cKDTree(self.icoord)
+		for i in range (self.icoord.shape[0]):
+			li=(point_tree.query_ball_point(self.icoord[i], 4.0))
+			for j in li:
+				if i == j:
+					continue
+				at = [self.atoms[i], self.atoms[j]]
+				at.sort()
+				dis = self.distance(self.icoord[j], self.icoord[i])
+				if at[-1] > 10:
+					if dis > 3.5:
+						continue
+				elif dis > 1.5:
+					continue
+				l2 = [i,j]
+				l2.sort()		
+				d[tuple(l2)] = self.distance(self.icoord[j], self.icoord[i])
+		self.conn = d
+		return 
 
 	def __str__(self):
 		return self.name 
@@ -231,9 +287,20 @@ class protein:
 class environ(protein):
 	def __init__(self, pdb, name):
 		self.name = name
+		self.SYNC_TARGET_FRAMES = 100
 		protein.__init__(self, pdb)
-		#super(environ, self, pdb).__init__()
+
 		self.natoms = len(self.atoms)
+
+		# add random noise to  initial coordinates
+		noise = np.random.normal(0,0.5,self.natoms*3).reshape((self.natoms, 3))
+		self.dcoord = np.copy(self.icoord + noise)
+		
+		#self.dcoord = np.copy(self.icoord)
+		
+		# indexes for upper triangle
+		self.iu = np.triu_indices(self.natoms)
+		
 		self.directions = np.array([[1,0,0],
                                             [-1,0,0],
                                             [0,1,0],
@@ -243,35 +310,49 @@ class environ(protein):
 		self.reset()
 
 	def reset(self):
-		# set dynamic coordinate to initial coordinate
-		self.dcoord = np.copy(self.icoord)
-		self.nframes = 0
+	        #print('reset called')
+	        # set dynamic coordinate to initial coordinate
+	        ind = 1#np.random.choice([1,0])
+	        if ind:
+	                self.dcoord = np.copy(self.icoord)
+	                #print('actual reset')
+	        self.nframes = 1
 
-		state = self.state()
+	        state = self.state()
 
-		# specific to pairwise state
-		l = state.shape[0]
-		self.obs_size = l
+	        # specific to pairwise state
+	        l = state.shape[0]
+	        self.obs_size = l
 
-		self.n_actions = 3*self.natoms*6
-		return state
+	        self.n_actions = self.natoms*6
+	        return state
 
 	def state(self):
 		#print (self.dcoord.shape, 'dcoord')
 		M = distance_matrix(self.dcoord, self.dcoord)
 
-		return M.flatten()
+		# take upper triangle
+		M = M[self.iu]
+		
+		M = M.flatten()
+		
+		'''
+		# for adding previous 5 frames
+		if M.shape[0] < 5*self.iu.shape[0]:
+			for j in range (
+		'''
+		return M
 
-		# Make M upper triangle pairwise distances
+		# Made M upper triangle pairwise distances
 
 	def step(self, action):
 		ac = np.argmax(action)
-		#print (ac)
-		# action space is 3N*6
+		#print (self.nframes,'frame')
+		# action space is N*6
 		atom_index, direcn = divmod(ac,6)
-		atom_index = atom_index/3
+		atom_index = atom_index
 		#print (int(atom_index), direcn)
-		new_coord = self.dcoord[int(atom_index)]+0.1*self.directions[direcn] # move 0.1 Angstron
+		new_coord = self.dcoord[int(atom_index)]+0.05*self.directions[direcn] # move 0.05 Angstron
 		#print (self.dcoord[int(atom_index)])
 		self.dcoord[int(atom_index)] = new_coord 
 		#print (self.dcoord[int(atom_index)])
@@ -282,7 +363,7 @@ class environ(protein):
 		#print ('Reward:',reward)
 		is_done = False
 
-		if self.nframes > 500:
+		if self.nframes >= self.SYNC_TARGET_FRAMES:
 			#print ('done')
 			is_done = True
 		self.nframes += 1
@@ -292,11 +373,11 @@ class environ(protein):
 
 
 	def sample_action_space(self, index = None):
-		s = np.zeros(self.natoms*3*6) # 3N coordinates * 6 direcn
+		s = np.zeros(self.natoms*6) # N coordinates * 6 direcn
 		if index:
 			s[index] = 1.0
 			return s
-		i = np.random.randint(self.natoms*3*6)
+		i = np.random.randint(self.natoms*6)
 		s[i] = 1.0
 		return s
 
@@ -315,7 +396,71 @@ class environ(protein):
 		f.close()
 
 
+class environ_coord(environ):
+        def state(self):
+                a = np.array(self.atoms).reshape((-1,1))
+                c = np.copy(self.dcoord)
+                min_max_scaler = MinMaxScaler()
+                c = min_max_scaler.fit_transform(c)
+                M1 = np.concatenate((a,c), axis = 1).flatten()
+                M2 = distance_matrix(self.dcoord, self.dcoord)
 
+                # take upper triangle
+                M2 = M2[self.iu]
+
+                M2 = M2.flatten()
+                M = np.concatenate((M1, M2), axis = None)
+                return M.flatten()
+
+class environ_grid(environ):
+        def initialize(self):
+                self.name = '.'.join(self.pdb_file.split('/')[-1].split('.')[:-1])
+                print ('Making pdb file with the first frame (_f1.pdb) ...')
+                self.truncate_pdb()
+
+                self.res_arr = self.make_xleap_input_sequence(self.name+'_r.pdb', self.name)
+
+                self.icoord = self.make_and_assign_3Dgrid()
+                # initial grid
+
+        def make_and_assign_3Dgrid(self):
+                l = arr.shape[0]+2
+                grid = np.zeros((l,l,l))
+                for i in range (len(self.res_arr)):
+                        grid[i+1, i+1, i+1] = self.res_arr[i]
+                return grid
+
+
+        def make_xleap_input_sequence(self, f, name):
+
+                def get_sequence(lines):
+                        d={}
+                        for line in lines:
+                                if "TER" in line.split()[0]:
+                                        break
+                                if line.split()[0] in ['ATOM','HETATM']:
+                                        #print line
+                                        id,at,rt,_,_0,x,y,z=line.strip().split()[1:9]
+                                        s=line.strip().split()[-1]
+                                        d[int(_0)]=rt
+                        print (d)
+                        arr = [d[i] for i in range (1,len(d)+1)]
+                        return arr
+
+                file = open(f,'r')
+                lines= file.readlines()
+                file.close()
+
+                seq = get_sequence(lines)
+                d = {}
+                for i in range (len(seq)):
+                        if seq[i] in d:
+                                seq[i] = d[seq[i]]
+                        else:
+                                d[seq[i]] = len(d)
+                                seq[i] = d[seq[i]]
+
+                return seq
 
 
 if __name__ == '__main__':
@@ -333,6 +478,10 @@ if __name__ == '__main__':
 	print (e)
 
 	print (p.atoms)
+
+	#print (p.getConn())
+
+
 
 
 

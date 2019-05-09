@@ -1,14 +1,15 @@
+import sys
 import time
 import numpy as np
 import torch.nn as nn
 import torch
-from protein import environ
+from protein import environ, environ_coord
 import collections
 import os
 
 DEFAULT_ENV_NAME = "Protein folding"
 device = "cpu"
-env = environ('1k43.pdb',DEFAULT_ENV_NAME)
+env = environ_coord('1k43.pdb',DEFAULT_ENV_NAME)
 
 print (env)
 
@@ -20,13 +21,15 @@ class Net(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_size, int(hidden_size/2)),
             nn.ReLU(),
-            nn.Linear(int(hidden_size/2), n_actions)
+            nn.Linear(int(hidden_size/2), int(hidden_size/4)),
+	    nn.ReLU(),
+            nn.Linear(int(hidden_size/4), n_actions)
         )
 
     def forward(self, x):
         return self.net(x)
 
-HIDDEN_SIZE = 256
+HIDDEN_SIZE = 2560
 
 obs_size = env.obs_size
 n_actions = env.n_actions
@@ -37,7 +40,12 @@ test_net.load_state_dict(torch.load("models/model-best.dat", map_location=lambda
 RENDER = 1
 
 if RENDER:
-	os.system('remove -rf render.xyz')
+	os.system('rm -rf render.xyz')
+
+if len(sys.argv) > 1:
+	env.SYNC_TARGET_FRAMES = int(sys.argv[1])
+else:
+	env.SYNC_TARGET_FRAMES = 500
 
 state = env.reset()
 total_reward = 0.0
@@ -45,8 +53,6 @@ c = collections.Counter()
 
 while True:
     start_ts = time.time()
-    if RENDER:
-        env.save_xyz(total_reward)
     state_v = torch.tensor(np.array([state], copy=False), dtype = torch.float).to(device)
     q_vals = test_net(state_v)
     _, act_v = torch.max(q_vals, dim=1)
@@ -54,13 +60,11 @@ while True:
     #action = np.argmax(q_vals)
     c[np.argmax(action)] += 1
     state, reward, done = env.step(action)
-    total_reward += reward
+    total_reward = reward # += reward
+    if RENDER:
+        env.save_xyz(total_reward)
     if done:
         break
-    if RENDER:# too fast without FPS limiter
-        delta = 1/30 - (time.time() - start_ts)
-        if delta > 0:
-            time.sleep(delta)
 print("Total reward: %.2f" % total_reward)
 print("Action counts:", c)
 
