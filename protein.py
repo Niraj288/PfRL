@@ -426,8 +426,8 @@ class environ_grid:
 
         def initialize(self):
                 self.name = '.'.join(self.pdb_file.split('/')[-1].split('.')[:-1])
-                print ('Making pdb file with the first frame (_f1.pdb) ...')
-                self.truncate_pdb()
+                #print ('Making pdb file with the first frame (_f1.pdb) ...')
+                #self.truncate_pdb()
 
                 self.direcn = np.array([[1,0,0], [-1,0,0], [0,1,0], [0,-1,0],
                                          [0,0,1], [0,0,-1], [1,1,1], [1,1,-1], 
@@ -498,11 +498,11 @@ class environ_grid:
                                             s=line.strip().split()[-1]
                                             x, y, z = list(map(float, [x, y, z]))
                                             if is_backbone(s, at):
-                                                            if rt not in d:
-                                                                        l[len(d)] = rt
-                                                                        d[rt]=[[x, y, z]]
+                                                            if rt+_0 not in d:
+                                                                        l[len(d)] = rt+_0
+                                                                        d[rt+_0]=[[x, y, z]]
                                                             else:
-                                                                        d[rt].append([x, y, z])
+                                                                        d[rt+_0].append([x, y, z])
                             return d, l
 
                 def get_quad(vec, cur):
@@ -522,7 +522,7 @@ class environ_grid:
                         d, l = data_extraction(lines)
                         lis = []
 
-                        #print l
+                        #print (d, l)
 
                         r_coord = []
                         for i in range (len(l)):
@@ -548,16 +548,20 @@ class environ_grid:
                                 #print(cur)
                                 trace_r[j+1] = cur 
 
+                        pos_arr = np.array([trace_r[j] for j in range (1, len(trace_r)+1)])
+                        min_x = np.min(pos_arr[:,0])-1
+                        min_y = np.min(pos_arr[:,1])-1
+                        min_z = np.min(pos_arr[:,2])-1
 
-                        # transform the central residue to 0,0,0
-                        cen = np.array(trace_r[int(len(l)/2)])
+                        # transform the avg pos to nres/2
+                        cen = np.array([min_x, min_y, min_z])
                         for i in range (len(trace_r)):
-                                trace_r[i+1] = np.array(trace_r[i+1]) - cen
+                                trace_r[i+1] = np.array(trace_r[i+1]) - cen 
 
                                 # move all to grid centre lt/2, lt/2, lt/2
-                                trace_r[i+1] = trace_r[i+1] + list(map(int,[lt/2, lt/2, lt/2]))
+                                #trace_r[i+1] = trace_r[i+1] + list(map(int,[lt/2, lt/2, lt/2]))
 
-                        print (trace_r)
+                        #print (trace_r)
 
 
                         for t in trace_r:
@@ -643,7 +647,7 @@ class environ_grid:
         	coord = [self.res_grid_pos[i] for i in self.res_grid_pos]
         	M_dgrid = distance_matrix(coord, coord)
 
-        	return -1*np.sum(np.abs(self.M_fgrid - M_dgrid))
+        	return -1*np.sum((self.M_fgrid - M_dgrid)**2)
 
 
 
