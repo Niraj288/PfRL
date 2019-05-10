@@ -429,7 +429,14 @@ class environ_grid:
                 print ('Making pdb file with the first frame (_f1.pdb) ...')
                 self.truncate_pdb()
 
+                self.direcn = np.array([[1,0,0], [-1,0,0], [0,1,0], [0,-1,0],
+                                         [0,0,1], [0,0,-1], [1,1,1], [1,1,-1], 
+                                         [1,-1,1], [-1,1,1], [-1,-1,-1], [-1,-1,1], 
+                                         [-1,1,-1], [1,-1,-1]])
+
                 self.res_arr = self.make_xleap_input_sequence(self.pdb_file, self.name)
+
+                self.nres = len(self.res_arr)
 
                 self.igrid = self.make_and_assign_3Dgrid()
                 # initial grid
@@ -445,6 +452,11 @@ class environ_grid:
                 # Make final conformation grid
                 self.fgrid = self.make_fgrid()
                 #np.save('grid.npy', {'grid':self.fgrid})
+
+                # compute pairwise distances of final protein
+                coord = [i for i in self.trace_r]
+                self.M_fgrid = distance_matrix(coord, coord)
+
 
         def truncate_pdb(self):
 				f = open(self.pdb_file,'r')
@@ -491,26 +503,10 @@ class environ_grid:
                             return d, l
 
                 def get_quad(vec, cur):
-                                
-                        # normalize vec
-                        vec = np.array(vec/np.linalg.norm(vec))
 
-                        #print (vec)
 
-                        vec = vec/0.5 
-
-                        #vec[vec > 0] = 0.0
-                        #vec[vec < 0] = 0.0
-
-                        vec[vec >= 1] = 1.0
-                        vec[vec <= -1] = -1.0
-                        for i in range (len(vec)):
-                        	if np.abs(vec[i]) != 1.0:
-                        		vec[i] = 0.0
-
-                        #print (vec)
-
-                        return list(cur+vec)
+                        temp = self.direcn[np.argmin(np.sum(np.abs(np.array(vec)-self.direcn), axis=1))]
+                        return list(cur+temp)
 
 						
 
@@ -565,6 +561,7 @@ class environ_grid:
                                 grid[tuple(map(int,trace_r[t]))] = t  
 
                         
+                        self.trace_r = trace_r
 
                         return grid 
 
@@ -578,8 +575,12 @@ class environ_grid:
         def make_and_assign_3Dgrid(self):
                 l = len(self.res_arr)+2
                 grid = np.zeros((l,l,l))
+                res_grid_pos = {}
                 for i in range (len(self.res_arr)):
                         grid[i+1, i+1, i+1] = self.res_arr[i]
+                        res_grid_pos[i] = [i+1, i+1, i+1]
+
+                self.res_grid_pos = res_grid_pos
                 return grid
 
 
@@ -619,7 +620,8 @@ class environ_grid:
 		        # set dynamic coordinate to initial coordinate
 		        ind = 1#np.random.choice([1,0])
 		        if ind:
-		                self.dgrid = np.copy(self.igrid)
+		                self.dgrid = self.make_and_assign_3Dgrid()
+
 		                #print('actual reset')
 		        self.nframes = 1
 
@@ -629,35 +631,40 @@ class environ_grid:
 
         def state(self):
 
-        		return self.dgrid
-        		'''
-                #print (self.dcoord.shape, 'dcoord')
-                M = distance_matrix(self.dcoord, self.dcoord)
+        		return self.dgrid.flatten()
 
-                # take upper triangle
-                M = M[self.iu]
-                
-                M = M.flatten()
-               
-                return M
-                '''
+        def get_reward(self):
+
+        	# right now based on the pairwise distance
+        	coord = [i for i in self.res_grid_pos]
+        	M_dgrid = distance_matrix(coord, coord)
+
+        	return -1*np.sum(np.abs(M_fgrid - M_dgrid))
+
+
 
         def step(self, action):
                 ac = np.argmax(action)
                 #print (self.nframes,'frame')
                 # action space is N*6
-                atom_index, direcn = divmod(ac,6)
-                atom_index = atom_index
-                #print (int(atom_index), direcn)
-                new_coord = self.dcoord[int(atom_index)]+0.05*self.directions[direcn] # move 0.05 Angstron
-                #print (self.dcoord[int(atom_index)])
-                self.dcoord[int(atom_index)] = new_coord
-                #print (self.dcoord[int(atom_index)])
+                res_index, dirn = divmod(ac,14)
+
+                # current place of residue in grid
+                cu_r = self.res_grid_pos[res_index]
+                
+                # make that place zero and assign a new value
+                self.dgrid[tuple(cu_r)] = 0.0
+
+                new_place = cu_r+self.direcn[dirn]
+
+                self.dgrid[new_place] = self.res_arr[res_index]
+
+                self.res_grid_pos[res_index] = new_place
 
                 new_state = self.state()
 
-                reward = -self.getPE(self.dcoord) # -ve is to maximize energy
-                #print ('Reward:',reward)
+                reward = self.get_reward()
+
                 is_done = False
 
                 if self.nframes >= self.SYNC_TARGET_FRAMES:
@@ -670,7 +677,7 @@ class environ_grid:
 
 
         def sample_action_space(self, index = None):
-                s = np.zeros(self.natoms*6) # N coordinates * 6 direcn
+                s = np.zeros(self.nres*14) # N residues * 14 direcn
                 if index:
                         s[index] = 1.0
                         return s
@@ -679,18 +686,18 @@ class environ_grid:
                 return s
 
         def save_xyz(self, reward = 0):
-                d = ad.data(sys.argv[0])
-                a = self.atoms
-                sd = [d[i]['symbol'] for i in a]
 
-                c = self.dcoord
+                if self.nframes == 1:
+                        d = {}  
+                else:   
+                        d = np.load('~/temp_grid.npy').item()
+
+                c = self.dgrid
                 print ('Reward:',reward)
-                f = open('render.xyz','a')
-                f.write(str(len(a))+'\nReward : '+str(reward)+'\n')
-                for j in range (len(a)):
-                        st = sd[j]+' '+' '.join(list(map(str,c[j])))+'\n'
-                        f.write(st)
-                f.close()
+
+                d[len(d)] = np.copy(c)
+
+                np.save('~/temp_grid.npy', d) 
 
 
 if __name__ == '__main__':
