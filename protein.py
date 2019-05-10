@@ -2,8 +2,8 @@
 import sys
 import os
 import numpy as np
-#from scipy.spatial import distance_matrix
-#import scipy.spatial as spatial
+from scipy.spatial import distance_matrix
+import scipy.spatial as spatial
 import atom_data as ad
 import math 
 from math import log10, floor
@@ -439,6 +439,7 @@ class environ_grid:
                 self.nres = len(self.res_arr)
 
                 self.igrid = self.make_and_assign_3Dgrid()
+                #print ('i', self.igrid)
                 # initial grid
 
         def init_args(self):
@@ -451,27 +452,29 @@ class environ_grid:
 
                 # Make final conformation grid
                 self.fgrid = self.make_fgrid()
+                #print (self.fgrid)
                 #np.save('grid.npy', {'grid':self.fgrid})
 
                 # compute pairwise distances of final protein
-                coord = [i for i in self.trace_r]
+                coord = [self.trace_r[i] for i in self.trace_r]
+                #print (coord)
                 self.M_fgrid = distance_matrix(coord, coord)
 
 
         def truncate_pdb(self):
-				f = open(self.pdb_file,'r')
-				lines = f.readlines()
-				f.close()
+                f = open(self.pdb_file,'r')
+                lines = f.readlines()
+                f.close()
 
-				new_lines = []
-				for line in lines:
-					new_lines.append(line)
-					if 'ENDMDL' in line:
-						break
-				g = open(self.name+'_f1.pdb', 'w')
-				g.write(''.join(new_lines))
-				g.close()
-				return 
+                new_lines = []
+                for line in lines:
+                        new_lines.append(line)
+                        if 'ENDMDL' in line:
+                                break
+                g = open(self.name+'_f1.pdb', 'w')
+                g.write(''.join(new_lines))
+                g.close()
+                return
 
         def make_fgrid(self):
 
@@ -576,7 +579,7 @@ class environ_grid:
                 l = len(self.res_arr)+2
                 grid = np.zeros((l,l,l))
                 res_grid_pos = {}
-                for i in range (len(self.res_arr)):
+                for i in range (self.nres):
                         grid[i+1, i+1, i+1] = self.res_arr[i]
                         res_grid_pos[i] = [i+1, i+1, i+1]
 
@@ -587,7 +590,7 @@ class environ_grid:
         def make_xleap_input_sequence(self, f, name):
 
                 def get_sequence(lines):
-                        d={}
+                        d,rid={},1
                         for line in lines:
                                 if "TER" in line.split()[0]:
                                         break
@@ -596,6 +599,7 @@ class environ_grid:
                                         id,at,rt,_,_0,x,y,z=line.strip().split()[1:9]
                                         s=line.strip().split()[-1]
                                         d[int(_0)]=rt
+                                        rid+=1
                         print (d)
                         arr = [d[i] for i in range (1,len(d)+1)]
                         return arr
@@ -610,7 +614,7 @@ class environ_grid:
                         if seq[i] in d:
                                 seq[i] = d[seq[i]]
                         else:
-                                d[seq[i]] = len(d)
+                                d[seq[i]] = len(d)+1
                                 seq[i] = d[seq[i]]
 
                 return seq
@@ -636,10 +640,10 @@ class environ_grid:
         def get_reward(self):
 
         	# right now based on the pairwise distance
-        	coord = [i for i in self.res_grid_pos]
+        	coord = [self.res_grid_pos[i] for i in self.res_grid_pos]
         	M_dgrid = distance_matrix(coord, coord)
 
-        	return -1*np.sum(np.abs(M_fgrid - M_dgrid))
+        	return -1*np.sum(np.abs(self.M_fgrid - M_dgrid))
 
 
 
@@ -651,13 +655,21 @@ class environ_grid:
 
                 # current place of residue in grid
                 cu_r = self.res_grid_pos[res_index]
-                
+
                 # make that place zero and assign a new value
                 self.dgrid[tuple(cu_r)] = 0.0
 
                 new_place = cu_r+self.direcn[dirn]
 
-                self.dgrid[new_place] = self.res_arr[res_index]
+                # No overlap between residues
+                if list(new_place) in [list(self.res_grid_pos[pos]) for pos in self.res_grid_pos]:
+                        new_place = cu_r
+
+                # dont move if at grid corner
+                elif max(new_place) >= self.nres+2 or min(new_place) < 0:
+                        new_place = cu_r
+
+                self.dgrid[tuple(new_place)] = self.res_arr[res_index]
 
                 self.res_grid_pos[res_index] = new_place
 
@@ -675,30 +687,32 @@ class environ_grid:
                 return new_state, reward, is_done
 
 
-
         def sample_action_space(self, index = None):
                 s = np.zeros(self.nres*14) # N residues * 14 direcn
                 if index:
                         s[index] = 1.0
                         return s
-                i = np.random.randint(self.natoms*6)
+                i = np.random.randint(self.nres*14)
                 s[i] = 1.0
                 return s
 
         def save_xyz(self, reward = 0):
 
-                if self.nframes == 1:
-                        d = {}  
-                else:   
+                if 1 or self.nframes == 1:
+                        d = {}
+                else:
                         d = np.load('~/temp_grid.npy').item()
 
                 c = self.dgrid
                 print ('Reward:',reward)
+                print (self.dgrid)
 
                 d[len(d)] = np.copy(c)
 
-                np.save('~/temp_grid.npy', d) 
+                #np.save('~/temp_grid.npy', d)
 
+        def __str__(self):
+                return self.name
 
 if __name__ == '__main__':
 
