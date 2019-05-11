@@ -3,13 +3,13 @@ import time
 import numpy as np
 import torch.nn as nn
 import torch
-from protein import environ, environ_coord
+from protein import environ, environ_coord, environ_grid
 import collections
 import os
 
 DEFAULT_ENV_NAME = "Protein folding"
 device = "cpu"
-env = environ_coord('1k43.pdb',DEFAULT_ENV_NAME)
+env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME,1)
 
 print (env)
 
@@ -45,7 +45,7 @@ if RENDER:
 if len(sys.argv) > 1:
 	env.SYNC_TARGET_FRAMES = int(sys.argv[1])
 else:
-	env.SYNC_TARGET_FRAMES = 500
+	env.SYNC_TARGET_FRAMES = 100
 
 state = env.reset()
 total_reward = 0.0
