@@ -115,7 +115,7 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
 
 DEFAULT_ENV_NAME = "Protein folding"
 
-env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME)
+env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME, 1)
 
 print (env)
 
@@ -151,7 +151,7 @@ print(obs_size,n_actions)
 
 device = "cpu"
 
-EPSILON_DECAY_LAST_FRAME = 10**7
+EPSILON_DECAY_LAST_FRAME = 10**4
 EPSILON_START = 1.0
 EPSILON_FINAL = 0.2
 
@@ -188,7 +188,7 @@ while True:
         ts_frame = frame_idx
         
         # calculate progress of rewards
-        mean_reward = np.mean(total_rewards[-1]) # CHANGED TO FINAL REWARD
+        mean_reward = np.mean(total_rewards[-100:]) 
         if frame_idx % 100==0:
             print("%d: done %d iterations, mean reward %.3f, eps %.2f" % (
                 frame_idx, len(total_rewards), mean_reward, epsilon

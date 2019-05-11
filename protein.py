@@ -7,6 +7,7 @@ import scipy.spatial as spatial
 import atom_data as ad
 import math 
 from math import log10, floor
+import animate
 
 class protein:
 	def __init__(self, pdb_file, name = 'Environment not set'):
@@ -416,13 +417,17 @@ class environ_coord(environ):
                 return M.flatten()
 
 class environ_grid:
-        def __init__(self, pdb, name):
+        def __init__(self, pdb, name, RENDER = 0):
                 self.name = name
+                self.RENDER = RENDER
                 self.SYNC_TARGET_FRAMES = 100
                 self.pdb_file = pdb 
                 #protein.__init__(self, pdb)
                 self.initialize()
+                if self.RENDER:
+                	self.anim = animate.render(self.nres+2)
                 self.init_args()
+
 
         def initialize(self):
                 self.name = '.'.join(self.pdb_file.split('/')[-1].split('.')[:-1])
@@ -452,6 +457,11 @@ class environ_grid:
 
                 # Make final conformation grid
                 self.fgrid = self.make_fgrid()
+
+                if self.RENDER:
+                		lis = [self.trace_r[t] for t in self.trace_r]
+                		self.anim.update(lis)
+
                 #print (self.fgrid)
                 #np.save('grid.npy', {'grid':self.fgrid})
 
@@ -649,6 +659,11 @@ class environ_grid:
 
         	return -1*np.sum((self.M_fgrid - M_dgrid)**2)
 
+        def distance(self,a,b):
+        		a = list(map(float,a))
+        		b = list(map(float,b))
+        		return math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2)
+
 
 
         def step(self, action):
@@ -665,21 +680,54 @@ class environ_grid:
 
                 new_place = cu_r+self.direcn[dirn]
 
+                penalty = 0.0
+
+                def check_chain(ind):
+                		lim = 3.0
+                		if ind > 1 and ind < self.nres - 1:
+                				r1 = self.distance(new_place, self.res_grid_pos[ind - 1])
+                				r2 = self.distance(new_place, self.res_grid_pos[ind + 1])
+                				if r1 < lim and r2 < lim:
+                						return True 
+                				return False
+                		elif ind == 0:
+                				r2 = self.distance(new_place, self.res_grid_pos[ind + 1])
+                				if r2 < lim:
+                						return True 
+                		elif ind == self.nres - 1:
+                				r1 = self.distance(new_place, self.res_grid_pos[ind - 1])
+                				if r1 < lim:
+                						return True 
+                		return False
+
                 # No overlap between residues
                 if list(new_place) in [list(self.res_grid_pos[pos]) for pos in self.res_grid_pos]:
                         new_place = cu_r
+
+                        penalty = -100
 
                 # dont move if at grid corner
                 elif max(new_place) >= self.nres+2 or min(new_place) < 0:
                         new_place = cu_r
 
+                        penalty = -100
+
+                elif not check_chain(res_index):
+                		new_place = cu_r
+
+                		penalty = -100
+
                 self.dgrid[tuple(new_place)] = self.res_arr[res_index]
 
                 self.res_grid_pos[res_index] = new_place
 
+                if self.RENDER:
+                		lis = [self.res_grid_pos[t] for t in self.res_grid_pos]
+                		self.anim.update(lis)
+
                 new_state = self.state()
 
-                reward = self.get_reward()
+                reward = self.get_reward()+penalty
 
                 is_done = False
 
