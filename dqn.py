@@ -72,10 +72,10 @@ class Agent:
         self.state = new_state
         
         if is_done:
-            done_reward = reward #self.total_reward
+            done_reward = self.total_reward
             self._reset()
         #return self.total_reward
-        return done_reward
+        return reward
 
 
 def calc_loss(batch, net, tgt_net, device="cpu"):
@@ -115,7 +115,7 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
 
 DEFAULT_ENV_NAME = "Protein folding"
 
-env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME, 1)
+env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME, 0)
 
 print (env)
 
