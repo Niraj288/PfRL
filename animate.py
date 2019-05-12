@@ -13,15 +13,20 @@ class render:
 		ax.set_ylim3d(0, rang)                    
 		ax.set_xlim3d(0, rang) 
 
-		self.lines = None
+		self.lines1 = None
 		self.ax = ax
 
 	def update(self, lis):
 		l = np.array(lis)
 		x, y, z = l[:,0],l[:,1],l[:,2] 
 
-		if self.lines:
-			self.lines.remove()
-		self.lines = self.ax.scatter(x, y, z, c = 'r')
+		if self.lines1:
+			self.lines1.remove()
+			l = self.lines2.pop(0)
+			l.remove()
+			del l#self.lines2
+			#self.lines2.remove()
+		self.lines1 = self.ax.scatter(x, y, z, c = 'r', s = 100)
+		self.lines2 = self.ax.plot(x, y, z, c = 'r')
 		plt.draw()
 		plt.pause(0.01)
