@@ -729,6 +729,9 @@ class environ_grid:
 
                 reward = self.get_reward()+penalty
 
+                if penalty != 0.0:
+                		reward = None
+
                 is_done = False
 
                 if self.nframes >= self.SYNC_TARGET_FRAMES:
@@ -750,18 +753,18 @@ class environ_grid:
 
         def save_xyz(self, reward = 0):
 
-                if 1 or self.nframes == 1:
+                if 'temp_grid.npy' not in os.listdir('.'):
                         d = {}
                 else:
-                        d = np.load('~/temp_grid.npy').item()
+                        d = np.load('temp_grid.npy').item()
 
                 c = self.dgrid
                 print ('Reward:',reward)
-                print (self.dgrid)
+                #print (self.dgrid)
 
                 d[len(d)] = np.copy(c)
 
-                #np.save('~/temp_grid.npy', d)
+                np.save('temp_grid.npy', d)
 
         def __str__(self):
                 return self.name
