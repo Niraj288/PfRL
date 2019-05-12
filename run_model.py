@@ -20,16 +20,16 @@ class Net(nn.Module):
             nn.Linear(obs_size, hidden_size),
             nn.ReLU(),
             nn.Linear(hidden_size, int(hidden_size/2)),
-            nn.ReLU(),
-            nn.Linear(int(hidden_size/2), int(hidden_size/4)),
+            #nn.ReLU(),
+            #nn.Linear(int(hidden_size/2), int(hidden_size/4)),
 	    nn.ReLU(),
-            nn.Linear(int(hidden_size/4), n_actions)
+            nn.Linear(int(hidden_size/2), n_actions)
         )
 
     def forward(self, x):
         return self.net(x)
 
-HIDDEN_SIZE = 2560
+HIDDEN_SIZE = 1000
 
 obs_size = env.obs_size
 n_actions = env.n_actions
@@ -65,7 +65,7 @@ while True:
         env.save_xyz(total_reward)
     if done:
         break
-print("Total reward: %.2f" % total_reward)
+#print("Total reward: %.2f" % total_reward)
 print("Action counts:", c)
 
 
