@@ -8,7 +8,7 @@ import torch.optim as optim
 #import gym
 from protein import environ, environ_coord, environ_grid
 
-GAMMA = 0.9
+GAMMA = 0.8
 
 
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
@@ -60,7 +60,7 @@ class Agent:
 
         # do step in the environment
         new_state, reward, is_done = self.env.step(action)
-        self.total_reward += reward
+        #self.total_reward += reward
         #new_state = new_state
 
 	# save coord for render
@@ -127,20 +127,26 @@ print(obs_size,n_actions)
 class Net(nn.Module):
     def __init__(self, obs_size, hidden_size, n_actions):
         super(Net, self).__init__()
+        def init_weights(m):
+            if type(m) == nn.Linear:
+                    torch.nn.init.xavier_uniform(m.weight)
+                    m.bias.data.fill_(0.0)
+            
         self.net = nn.Sequential(
             nn.Linear(obs_size, hidden_size),
             nn.ReLU(),
             nn.Linear(hidden_size, int(hidden_size/2)),
             nn.ReLU(),
-            nn.Linear(int(hidden_size/2), int(hidden_size/4)),
-	    nn.ReLU(),
-            nn.Linear(int(hidden_size/4), n_actions)
+            #nn.Linear(int(hidden_size/2), int(hidden_size/4)),
+	        #   nn.ReLU(),
+            nn.Linear(int(hidden_size/2), n_actions)
         )
+        self.net.apply(init_weights)
 
     def forward(self, x):
         return self.net(x)
 
-HIDDEN_SIZE = 2560
+HIDDEN_SIZE = 1000#2560
 
 net = Net(obs_size, HIDDEN_SIZE, n_actions)
 tgt_net = Net(obs_size, HIDDEN_SIZE, n_actions)
@@ -151,15 +157,15 @@ print(obs_size,n_actions)
 
 device = "cpu"
 
-EPSILON_DECAY_LAST_FRAME = 10**4
+EPSILON_DECAY_LAST_FRAME = 10**6
 EPSILON_START = 1.0
 EPSILON_FINAL = 0.2
 
-MEAN_REWARD_BOUND = 100000
-SYNC_TARGET_FRAMES = 500
+MEAN_REWARD_BOUND = -10.0
+SYNC_TARGET_FRAMES = 1000
 BATCH_SIZE = 16
-REPLAY_SIZE = 500
-REPLAY_START_SIZE = 500
+REPLAY_SIZE = 1000
+REPLAY_START_SIZE = 1000
 LEARNING_RATE = 1e-4
 
 buffer = ExperienceBuffer(REPLAY_SIZE)
@@ -188,7 +194,7 @@ while True:
         ts_frame = frame_idx
         
         # calculate progress of rewards
-        mean_reward = np.mean(total_rewards[-100:]) 
+        mean_reward = np.mean(total_rewards[-2:]) 
         if frame_idx % 100==0:
             print("%d: done %d iterations, mean reward %.3f, eps %.2f" % (
                 frame_idx, len(total_rewards), mean_reward, epsilon
