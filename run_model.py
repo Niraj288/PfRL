@@ -7,6 +7,11 @@ from protein import environ, environ_coord, environ_grid
 import collections
 import os
 
+RENDER = 1
+
+if RENDER:
+        os.system('rm -rf temp_grid.npy')
+
 DEFAULT_ENV_NAME = "Protein folding"
 device = "cpu"
 env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME,1)
@@ -37,10 +42,6 @@ n_actions = env.n_actions
 test_net = Net(obs_size, HIDDEN_SIZE, n_actions)
 test_net.load_state_dict(torch.load("models/model-best.dat", map_location=lambda storage, loc: storage))
 
-RENDER = 1
-
-#if RENDER:
-#	os.system('rm -rf render.xyz')
 
 if len(sys.argv) > 1:
 	env.SYNC_TARGET_FRAMES = int(sys.argv[1])

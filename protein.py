@@ -553,7 +553,7 @@ class environ_grid:
                         trace_r = {1:cur} # track where residues are placed
 
                         for j in range (1, len(r_coord)):
-                                vec = r_coord[j] - r_coord[0]
+                                vec = r_coord[j] - r_coord[j-1]
                                 #print (vec)
                                 cur = get_quad(vec, cur) # get current grid place from relative vector
                                 #print(cur)
@@ -761,7 +761,7 @@ class environ_grid:
 
                 c = self.dgrid
                 print ('Reward:',reward)
-                #print (self.dgrid)
+                #print (lis)
 
                 if lis is None:
                 		lis = [self.res_grid_pos[t] for t in self.res_grid_pos]
