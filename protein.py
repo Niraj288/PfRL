@@ -439,7 +439,11 @@ class environ_grid:
                                          [1,-1,1], [-1,1,1], [-1,-1,-1], [-1,-1,1], 
                                          [-1,1,-1], [1,-1,-1]])
 
+                self.res_d = {}
+
                 self.res_arr = self.make_xleap_input_sequence(self.pdb_file, self.name)
+
+                #print (self.res_arr)
 
                 self.nres = len(self.res_arr)
 
@@ -624,13 +628,13 @@ class environ_grid:
                 file.close()
 
                 seq = get_sequence(lines)
-                d = {}
+                
                 for i in range (len(seq)):
-                        if seq[i] in d:
-                                seq[i] = d[seq[i]]
+                        if seq[i] in self.res_d:
+                                seq[i] = self.res_d[seq[i]]
                         else:
-                                d[seq[i]] = len(d)+1
-                                seq[i] = d[seq[i]]
+                                self.res_d[seq[i]] = len(self.res_d)+1
+                                seq[i] = self.res_d[seq[i]]
 
                 return seq
 
