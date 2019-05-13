@@ -460,6 +460,7 @@ class environ_grid:
 
                 if self.RENDER:
                 		lis = [self.trace_r[t] for t in self.trace_r]
+                		self.save_xyz(0.0, lis)
                 		self.anim.update(lis)
 
                 #print (self.fgrid)
@@ -751,7 +752,7 @@ class environ_grid:
                 s[i] = 1.0
                 return s
 
-        def save_xyz(self, reward = 0):
+        def save_xyz(self, reward = 0, lis = None):
 
                 if 'temp_grid.npy' not in os.listdir('.'):
                         d = {}
@@ -762,7 +763,10 @@ class environ_grid:
                 print ('Reward:',reward)
                 #print (self.dgrid)
 
-                d[len(d)] = np.copy(c)
+                if lis is None:
+                		lis = [self.res_grid_pos[t] for t in self.res_grid_pos]
+
+                d[len(d)] = lis#np.copy(c)
 
                 np.save('temp_grid.npy', d)
 

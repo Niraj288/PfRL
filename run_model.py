@@ -39,8 +39,8 @@ test_net.load_state_dict(torch.load("models/model-best.dat", map_location=lambda
 
 RENDER = 1
 
-if RENDER:
-	os.system('rm -rf render.xyz')
+#if RENDER:
+#	os.system('rm -rf render.xyz')
 
 if len(sys.argv) > 1:
 	env.SYNC_TARGET_FRAMES = int(sys.argv[1])
