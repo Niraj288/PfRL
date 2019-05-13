@@ -460,6 +460,7 @@ class environ_grid:
 
                 if self.RENDER:
                 		lis = [self.trace_r[t] for t in self.trace_r]
+                		self.save_xyz(0.0, lis)
                 		self.anim.update(lis)
 
                 #print (self.fgrid)
@@ -552,7 +553,7 @@ class environ_grid:
                         trace_r = {1:cur} # track where residues are placed
 
                         for j in range (1, len(r_coord)):
-                                vec = r_coord[j] - r_coord[0]
+                                vec = r_coord[j] - r_coord[j-1]
                                 #print (vec)
                                 cur = get_quad(vec, cur) # get current grid place from relative vector
                                 #print(cur)
@@ -751,7 +752,7 @@ class environ_grid:
                 s[i] = 1.0
                 return s
 
-        def save_xyz(self, reward = 0):
+        def save_xyz(self, reward = 0, lis = None):
 
                 if 'temp_grid.npy' not in os.listdir('.'):
                         d = {}
@@ -760,9 +761,12 @@ class environ_grid:
 
                 c = self.dgrid
                 print ('Reward:',reward)
-                #print (self.dgrid)
+                #print (lis)
 
-                d[len(d)] = np.copy(c)
+                if lis is None:
+                		lis = [self.res_grid_pos[t] for t in self.res_grid_pos]
+
+                d[len(d)] = lis#np.copy(c)
 
                 np.save('temp_grid.npy', d)
 
