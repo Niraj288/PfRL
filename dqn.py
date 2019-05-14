@@ -115,7 +115,7 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
 
 DEFAULT_ENV_NAME = "Protein folding"
 
-env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME, 0)
+env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME, 1)
 
 print (env)
 
@@ -159,10 +159,10 @@ device = "cpu"
 
 EPSILON_DECAY_LAST_FRAME = 10**4
 EPSILON_START = 1.0
-EPSILON_FINAL = 0.0
+EPSILON_FINAL = 0.05
 
 MEAN_REWARD_BOUND = -10.0
-SYNC_TARGET_FRAMES = 2000
+SYNC_TARGET_FRAMES = 5000
 BATCH_SIZE = 16
 REPLAY_SIZE = 1000
 REPLAY_START_SIZE = 1000
