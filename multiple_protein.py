@@ -9,7 +9,7 @@ from math import log10, floor
 import animate
 
 
-class environ_grid_multiple_pdb:
+class environ_grid:
         def __init__(self, pdb, name, RENDER = 0):
                 self.name = name
                 self.RENDER = RENDER
