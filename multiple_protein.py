@@ -16,7 +16,7 @@ class environ_grid:
                 self.SYNC_TARGET_FRAMES = 100
                 if 'proteins' not in os.listdir('.'):
                     raise Exception('No folder named proteins found !')
-                self.pdb_files = [fi for fi in os.listdir('proteins/')]
+                self.pdb_files = [fi for fi in os.listdir('proteins/') if fi[-4:] == '.pdb']
                 #protein.__init__(self, pdb)
                 self.current_index = 0
                 self.initialize()
