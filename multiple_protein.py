@@ -310,8 +310,8 @@ class environ_grid:
 
                 reward = self.get_reward()+penalty
 
-                if penalty != 0.0:
-                		reward = None
+                #if penalty != 0.0:
+                #		reward = None
 
                 is_done = False
 
