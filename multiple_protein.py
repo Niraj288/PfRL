@@ -229,8 +229,8 @@ class environ_grid:
 		        return state
 
         def state(self):
-
-        		return self.dgrid.flatten()
+			return [self.res_grid_pos[i] for i in self.res_grid_pos]
+        		#return self.dgrid.flatten()
 
         def get_reward(self):
 
