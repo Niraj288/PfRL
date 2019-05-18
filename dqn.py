@@ -5,8 +5,8 @@ import collections
 import torch
 import torch.nn as nn
 import torch.optim as optim
-#import gym
-from protein import environ, environ_coord, environ_grid
+from multiple_protein import environ_grid
+#from protein import environ, environ_coord, environ_grid
 
 GAMMA = 0.8
 
@@ -157,9 +157,9 @@ print(obs_size,n_actions)
 
 device = "cpu"
 
-EPSILON_DECAY_LAST_FRAME = 10**4
+EPSILON_DECAY_LAST_FRAME = 10**8
 EPSILON_START = 1.0
-EPSILON_FINAL = 0.05
+EPSILON_FINAL = 0.00
 
 MEAN_REWARD_BOUND = -10.0
 SYNC_TARGET_FRAMES = 5000

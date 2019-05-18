@@ -25,7 +25,7 @@ class environ_grid:
                 self.init_args()
 
         def initialize(self):
-                self.names = ['.'.join(pdb.split('/')[-1].split('.')[:-1]) for pdb in self.pdb.files]
+                self.names = ['.'.join(pdb.split('/')[-1].split('.')[:-1]) for pdb in self.pdb_files]
                 #print ('Making pdb file with the first frame (_f1.pdb) ...')
                 #self.truncate_pdb()
 
@@ -152,7 +152,7 @@ class environ_grid:
 
 
                 def get_grid(pdb):
-                        f = open(pdb, 'r')
+                        f = open('proteins/'+pdb, 'r')
                         lines = f.readlines()
                         f.close()
 
@@ -170,7 +170,7 @@ class environ_grid:
                                 #print (cp)
                                 r_coord.append(np.array(cp))
 
-                        lt = len(self.res_arr)+2
+                        lt = max(self.nres)+2
                         grid = np.zeros((lt, lt, lt))
 
                         # first residue at 0,0,0
@@ -238,7 +238,7 @@ class environ_grid:
         	coord = [self.res_grid_pos[i] for i in self.res_grid_pos]
         	M_dgrid = distance_matrix(coord, coord)
 
-        	return -1*np.sum((self.M_fgrid - M_dgrid)**2)
+        	return -1*np.sum((self.M_fgrids[self.current_index] - M_dgrid)**2)
 
         def distance(self,a,b):
         		a = list(map(float,a))
@@ -265,7 +265,7 @@ class environ_grid:
 
                 def check_chain(ind):
                 		lim = 3.0
-                		if ind > 1 and ind < self.nres - 1:
+                		if ind > 1 and ind < max(self.nres) - 1:
                 				r1 = self.distance(new_place, self.res_grid_pos[ind - 1])
                 				r2 = self.distance(new_place, self.res_grid_pos[ind + 1])
                 				if r1 < lim and r2 < lim:
@@ -275,7 +275,7 @@ class environ_grid:
                 				r2 = self.distance(new_place, self.res_grid_pos[ind + 1])
                 				if r2 < lim:
                 						return True 
-                		elif ind == self.nres - 1:
+                		elif ind == max(self.nres) - 1:
                 				r1 = self.distance(new_place, self.res_grid_pos[ind - 1])
                 				if r1 < lim:
                 						return True 
