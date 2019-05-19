@@ -101,17 +101,19 @@ class environ_grid:
                 self.fgrids = self.make_fgrid()
 
                 if self.RENDER:
-                		lis = [self.trace_r[self.current_index][t] for t in self.trace_r[self.current_index]]
-                		self.save_xyz(0.0, lis)
-                		self.anim.update(lis)
+                                lis = [self.trace_r[self.current_index][t] for t in self.trace_r[self.current_index]]
+                                self.save_xyz(0.0, lis)
+                                self.anim.update(lis)
 
-                #print (self.fgrid)
+                #print (self.fgrids)
                 #np.save('grid.npy', {'grid':self.fgrid})
 
                 # compute pairwise distances of final proteins
                 coords = [[self.trace_r[ind][i] for i in self.trace_r[ind]] for ind in range (len(self.pdb_files))]
                 #print (coord)
                 self.M_fgrids = [distance_matrix(coord, coord) for coord in coords]
+                #pr = [k.shape for k in self.M_fgrids]
+                #print (self.pdb_files, pr)
 
         def make_fgrid(self):
 
@@ -215,22 +217,22 @@ class environ_grid:
                 return lis
 
         def reset(self):
-		        #print('reset called')
-		        # set dynamic coordinate to initial coordinate
-		        self.current_index = np.random.choice(range(len(self.pdb_files)))
+                        #print(self.res_grid_pos)
+                        # set dynamic coordinate to initial coordinate
+                        self.current_index = np.random.choice(range(len(self.pdb_files)))
 
-		        self.dgrid = self.make_and_assign_3Dgrid()
+                        self.dgrid = self.make_and_assign_3Dgrid()
 
-		                #print('actual reset')
-		        self.nframes = 1
+                        self.nframes = 1
 
-		        state = self.state()
+                        state = self.state()
 
-		        return state
+                        return state
 
         def state(self):
-                        return np.array([[self.res_arrs[self.current_index][i]]+self.res_grid_pos[i] for i in range (self.nres[self.current_index])]).flatten()
-                        #return self.dgrid.flatten()
+                lis = [[float(self.res_arrs[self.current_index][i])]+list(map(float,self.res_grid_pos[i])) for i in range (self.nres[self.current_index])]
+                return np.array(lis).flatten()
+                #return self.dgrid.flatten()
 
         def get_reward(self):
 

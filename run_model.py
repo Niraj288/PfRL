@@ -3,7 +3,8 @@ import time
 import numpy as np
 import torch.nn as nn
 import torch
-from protein import environ, environ_coord, environ_grid
+from multiple_protein import environ_grid
+#from protein import environ, environ_coord, environ_grid
 import collections
 import os
 
