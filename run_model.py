@@ -50,7 +50,7 @@ else:
 	env.SYNC_TARGET_FRAMES = 100
 
 state = env.reset()
-total_reward = 0.0
+final_reward = -99999999
 c = collections.Counter()
 
 while True:
@@ -62,12 +62,14 @@ while True:
     #action = np.argmax(q_vals)
     c[np.argmax(action)] += 1
     state, reward, done = env.step(action)
-    total_reward = reward # += reward
-    if RENDER:
-        env.save_xyz(total_reward)
+    if reward and final_reward < reward: # += reward
+        final_reward = reward
+    print (reward)
+    #if RENDER:
+    #    env.save_xyz(total_reward)
     if done:
         break
-#print("Total reward: %.2f" % total_reward)
+print("Final reward: %.2f" % final_reward)
 print("Action counts:", c)
 
 
