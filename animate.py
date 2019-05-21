@@ -29,4 +29,4 @@ class render:
 		self.lines1 = self.ax.scatter(x, y, z, c = 'r', s = 100)
 		self.lines2 = self.ax.plot(x, y, z, c = 'r')
 		plt.draw()
-		plt.pause(0.01)
+		plt.pause(0.0001)

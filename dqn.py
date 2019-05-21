@@ -8,7 +8,7 @@ import torch.optim as optim
 from multiple_protein import environ_grid
 #from protein import environ, environ_coord, environ_grid
 
-GAMMA = 0.8
+GAMMA = 0.9
 
 
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
@@ -157,12 +157,12 @@ print(obs_size,n_actions)
 
 device = "cpu"
 
-EPSILON_DECAY_LAST_FRAME = 10**6
+EPSILON_DECAY_LAST_FRAME = 10**8
 EPSILON_START = 1.0
 EPSILON_FINAL = 0.00
 
 MEAN_REWARD_BOUND = -10.0
-SYNC_TARGET_FRAMES = 2000
+SYNC_TARGET_FRAMES = 5000
 BATCH_SIZE = 16
 REPLAY_SIZE = 1000
 REPLAY_START_SIZE = 1000
