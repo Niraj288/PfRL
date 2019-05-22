@@ -227,8 +227,8 @@ class environ_grid:
                     t[i] = 1.0
 
                 # make ohe for all future res and stack
-                for i in range (cur_res + 1 ,cur_res + 1 + self.fcounts):
-                    if i >= len(self.fcords[self.current_index]):
+                for i in range (cur_res - 2 ,cur_res - 2 + self.fcounts):
+                    if i >= len(self.fcords[self.current_index]) or i < 0:
                         lis = np.concatenate((lis, np.zeros(self.nres)))
                     else:
                         #print (self.res_arrs[self.current_index])
