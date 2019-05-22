@@ -5,8 +5,9 @@ import collections
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from multiple_protein import environ_grid
+#from multiple_protein import environ_grid
 #from protein import environ, environ_coord, environ_grid
+from denovo import environ_grid
 
 GAMMA = 0.9
 
@@ -157,15 +158,15 @@ print(obs_size,n_actions)
 
 device = "cpu"
 
-EPSILON_DECAY_LAST_FRAME = 10**8
+EPSILON_DECAY_LAST_FRAME = 10**5
 EPSILON_START = 1.0
 EPSILON_FINAL = 0.00
 
-MEAN_REWARD_BOUND = -10.0
-SYNC_TARGET_FRAMES = 5000
+MEAN_REWARD_BOUND = -0.01
+SYNC_TARGET_FRAMES = 500
 BATCH_SIZE = 16
-REPLAY_SIZE = 1000
-REPLAY_START_SIZE = 1000
+REPLAY_SIZE = 500
+REPLAY_START_SIZE = 500
 LEARNING_RATE = 1e-4
 
 buffer = ExperienceBuffer(REPLAY_SIZE)
@@ -194,7 +195,7 @@ while True:
         ts_frame = frame_idx
         
         # calculate progress of rewards
-        mean_reward = np.mean(total_rewards[-2:]) 
+        mean_reward = np.mean(total_rewards[-10:]) 
         if frame_idx % 100==0:
             print("%d: done %d iterations, mean reward %.3f, eps %.2f" % (
                 frame_idx, len(total_rewards), mean_reward, epsilon

@@ -3,19 +3,22 @@ import time
 import numpy as np
 import torch.nn as nn
 import torch
-from multiple_protein import environ_grid
+#from multiple_protein import environ_grid
 #from protein import environ, environ_coord, environ_grid
+from denovo import environ_grid
 import collections
 import os
 
 RENDER = 1
+
+test = 1
 
 if RENDER:
         os.system('rm -rf temp_grid.npy')
 
 DEFAULT_ENV_NAME = "Protein folding"
 device = "cpu"
-env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME,1)
+env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME,RENDER, test)
 
 print (env)
 

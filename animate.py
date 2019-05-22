@@ -9,14 +9,14 @@ class render:
 		fig = plt.figure()
 		ax = fig.add_subplot(111, projection='3d')
 
-		ax.set_zlim3d(0, rang)                    
-		ax.set_ylim3d(0, rang)                    
-		ax.set_xlim3d(0, rang) 
+		ax.set_zlim3d(-rang, rang)                    
+		ax.set_ylim3d(-rang, rang)                    
+		ax.set_xlim3d(-rang, rang) 
 
 		self.lines1 = None
 		self.ax = ax
 
-	def update(self, lis):
+	def update(self, lis, ini = 0):
 		l = np.array(lis)
 		x, y, z = l[:,0],l[:,1],l[:,2] 
 
@@ -29,4 +29,7 @@ class render:
 		self.lines1 = self.ax.scatter(x, y, z, c = 'r', s = 100)
 		self.lines2 = self.ax.plot(x, y, z, c = 'r')
 		plt.draw()
-		plt.pause(0.0001)
+		if ini:
+			plt.pause(5)
+		else:
+			plt.pause(1.001)
