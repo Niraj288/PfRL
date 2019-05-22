@@ -3,19 +3,22 @@ import time
 import numpy as np
 import torch.nn as nn
 import torch
-from multiple_protein import environ_grid
+#from multiple_protein import environ_grid
 #from protein import environ, environ_coord, environ_grid
+from denovo import environ_grid
 import collections
 import os
 
 RENDER = 1
+
+test = 1
 
 if RENDER:
         os.system('rm -rf temp_grid.npy')
 
 DEFAULT_ENV_NAME = "Protein folding"
 device = "cpu"
-env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME,1)
+env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME,RENDER, test)
 
 print (env)
 
@@ -50,7 +53,7 @@ else:
 	env.SYNC_TARGET_FRAMES = 100
 
 state = env.reset()
-total_reward = 0.0
+final_reward = -99999999
 c = collections.Counter()
 
 while True:
@@ -62,12 +65,14 @@ while True:
     #action = np.argmax(q_vals)
     c[np.argmax(action)] += 1
     state, reward, done = env.step(action)
-    total_reward = reward # += reward
-    if RENDER:
-        env.save_xyz(total_reward)
+    if reward and final_reward < reward: # += reward
+        final_reward = reward
+    print (reward)
+    #if RENDER:
+    #    env.save_xyz(total_reward)
     if done:
         break
-#print("Total reward: %.2f" % total_reward)
+print("Final reward: %.2f" % final_reward)
 print("Action counts:", c)
 
 

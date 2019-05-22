@@ -10,8 +10,9 @@ import animate
 
 
 class environ_grid:
-        def __init__(self, pdb, name, RENDER = 0):
+        def __init__(self, pdb, name, RENDER = 0, test = 0):
                 self.name = name
+                self.test = test
                 self.RENDER = RENDER
                 self.SYNC_TARGET_FRAMES = 100
                 if 'proteins' not in os.listdir('.'):
@@ -19,9 +20,15 @@ class environ_grid:
                 self.pdb_files = [fi for fi in os.listdir('proteins/') if fi[-4:] == '.pdb']
                 #protein.__init__(self, pdb)
                 self.current_index = 0
+                if test:
+                        for i in range (len(self.pdb_files)):
+                                if pdb == self.pdb_files[i]:
+                                        self.current_index = i
+                                        break
+                        print ('Protein folding starting on', self.pdb_files[self.current_index], i)
                 self.initialize()
                 if self.RENDER:
-                        self.anim = animate.render(max(self.nres)+2)
+                        self.anim = animate.render(self.nres/2+1)
                 self.init_args()
 
         def initialize(self):
@@ -29,22 +36,38 @@ class environ_grid:
                 #print ('Making pdb file with the first frame (_f1.pdb) ...')
                 #self.truncate_pdb()
 
-                self.direcn = np.array([[1,0,0], [-1,0,0], [0,1,0], [0,-1,0],
-                                 [0,0,1], [0,0,-1], [1,1,1], [1,1,-1],
-                                 [1,-1,1], [-1,1,1], [-1,-1,-1], [-1,-1,1],
-                                 [-1,1,-1], [1,-1,-1]])
+                self.direcn = np.array([[1.0,0.0,0.0], [-1.0,0.0,0.0], [0.0,1.0,0.0], [0.0,-1.0,0.0],
+                                 [0.0,0.0,1.0], [0.0,0.0,-1.0], [1.0,1.0,1.0], [1.0,1.0,-1.0],
+                                 [1.0,-1.0,1.0], [-1.0,1.0,1.0], [-1.0,-1.0,-1.0], [-1.0,-1.0,1.0],
+                                 [-1.0,1.0,-1.0], [1.0,-1.0,-1.0]])
 
                 self.res_d = {}
 
                 self.res_arrs = [self.make_xleap_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
 
-                #print (self.res_arr)
+                self.nres = max([max(i) for i in self.res_arrs])
+                print (self.nres)
+                self.ohe = self.make_ohe()
 
-                self.nres = [len(i) for i in self.res_arrs]
+                self.current_status = [[0.0,0.0,0.0]]
 
-                self.igrid = self.make_and_assign_3Dgrid()
+                # how much to look in future
+                self.fcounts = 10
+
+                # bcount is how much to go backward for reward
+                self.bcount = 10
                 #print ('i', self.igrid)
                 # initial grid
+                print (self.res_d)
+
+        def make_ohe(self):
+                l = self.nres
+                ar = np.zeros(l)
+                ohe = {}
+                for i in range (l):
+                        ohe[i] = np.copy(ar)
+                        ohe[i][i] = 1.0
+                return ohe
 
         def make_xleap_input_sequence(self, f, name):
 
@@ -78,44 +101,23 @@ class environ_grid:
 
                 return seq
 
-        def make_and_assign_3Dgrid(self):
-                l = max(self.nres)+2
-                grid = np.zeros((l,l,l))
-                res_grid_pos = {}
-                for i in range (self.nres[self.current_index]):
-                        grid[i+1, i+1, i+1] = self.res_arrs[self.current_index][i]
-                        res_grid_pos[i] = [i+1, i+1, i+1]
-
-                self.res_grid_pos = res_grid_pos
-                return grid
-
         def init_args(self):
-                self.dgrid = np.copy(self.igrid)
+
+		# Make final conformation grids
+                self.fcords = self.make_fcords()		
+
                 state = self.reset()
                 l = state.shape[0]
                 self.obs_size = l
 
-                self.n_actions = max(self.nres)*14
-
-                # Make final conformation grids
-                self.fgrids = self.make_fgrid()
+                self.n_actions = len(self.direcn)
 
                 if self.RENDER:
-                                lis = [self.trace_r[self.current_index][t] for t in self.trace_r[self.current_index]]
-                                self.save_xyz(0.0, lis)
-                                self.anim.update(lis)
+                                #lis = [self.trace_r[self.current_index][t] for t in self.trace_r[self.current_index]]
+                                self.save_xyz(0.0, self.fcords[self.current_index])
+                                self.anim.update(self.fcords[self.current_index], 1)
 
-                #print (self.fgrids)
-                #np.save('grid.npy', {'grid':self.fgrid})
-
-                # compute pairwise distances of final proteins
-                coords = [[self.trace_r[ind][i] for i in self.trace_r[ind]] for ind in range (len(self.pdb_files))]
-                #print (coord)
-                self.M_fgrids = [distance_matrix(coord, coord) for coord in coords]
-                #pr = [k.shape for k in self.M_fgrids]
-                #print (self.pdb_files, pr)
-
-        def make_fgrid(self):
+        def make_fcords(self):
 
                 def is_backbone(r,st):
                             l=len(r)
@@ -172,9 +174,6 @@ class environ_grid:
                                 #print (cp)
                                 r_coord.append(np.array(cp))
 
-                        lt = max(self.nres)+2
-                        grid = np.zeros((lt, lt, lt))
-
                         # first residue at 0,0,0
                         cur = [0,0,0]
 
@@ -188,30 +187,10 @@ class environ_grid:
                                 trace_r[j+1] = cur 
 
                         pos_arr = np.array([trace_r[j] for j in range (1, len(trace_r)+1)])
-                        min_x = np.min(pos_arr[:,0])-1
-                        min_y = np.min(pos_arr[:,1])-1
-                        min_z = np.min(pos_arr[:,2])-1
-
-                        # transform the avg pos to nres/2
-                        cen = np.array([min_x, min_y, min_z])
-                        for i in range (len(trace_r)):
-                                trace_r[i+1] = np.array(trace_r[i+1]) - cen 
-
-                                # move all to grid centre lt/2, lt/2, lt/2
-                                #trace_r[i+1] = trace_r[i+1] + list(map(int,[lt/2, lt/2, lt/2]))
-
-                        #print (trace_r)
-
-
-                        for t in trace_r:
-                                grid[tuple(map(int,trace_r[t]))] = t  
-
                         
-                        self.trace_r.append(trace_r)
 
-                        return grid 
+                        return pos_arr 
 
-                self.trace_r = []
                 lis = [get_grid(pdb) for pdb in self.pdb_files]
 
                 return lis
@@ -219,9 +198,10 @@ class environ_grid:
         def reset(self):
                         #print(self.res_grid_pos)
                         # set dynamic coordinate to initial coordinate
-                        self.current_index = np.random.choice(range(len(self.pdb_files)))
+                        if not self.test:
+                                self.current_index = np.random.choice(range(len(self.pdb_files)))
 
-                        self.dgrid = self.make_and_assign_3Dgrid()
+                        self.current_status = [[0.0, 0.0, 0.0]]
 
                         self.nframes = 1
 
@@ -230,17 +210,59 @@ class environ_grid:
                         return state
 
         def state(self):
-                lis = [[float(self.res_arrs[self.current_index][i])]+list(map(float,self.res_grid_pos[i])) for i in range (self.nres[self.current_index])]
-                return np.array(lis).flatten()
-                #return self.dgrid.flatten()
+                cur_res = len(self.current_status)-1
+                lis = self.ohe[self.res_arrs[self.current_index][cur_res]]
+                # Places where next residue cannot move
+                # overlap in 14 directions
+                t = np.zeros(len(self.direcn))
+                k = []
+                for i in range (len(self.direcn)):
+                    lt = self.current_status[-1]+self.direcn[i]
+                    lt1 = list(lt)
+                    lt2 = list(self.current_status)
+                    #print (lt1, lt2)
+                    if lt1 in lt2:
+                        k.append(i)
+                for i in k:
+                    t[i] = 1.0
+
+                # make ohe for all future res and stack
+                for i in range (cur_res + 1 ,cur_res + 1 + self.fcounts):
+                    if i >= len(self.fcords[self.current_index]):
+                        lis = np.concatenate((lis, np.zeros(self.nres)))
+                    else:
+                        #print (self.res_arrs[self.current_index])
+                        lis = np.concatenate((lis, self.ohe[self.res_arrs[self.current_index][i]-1]))
+                #print (np.array(np.concatenate((lis,t)), dtype = 'float').shape)
+                l_temp = list(np.array(self.current_status[-3:]).flatten())
+                if len(l_temp) < 9:
+                        k = 9 - len(l_temp)
+                        for i in range (k):
+                                l_temp += [0.0]
+                lis = np.concatenate((np.array(l_temp), lis))
+                return np.array(np.concatenate((lis,t)), dtype = 'float').flatten()
+
 
         def get_reward(self):
 
-        	# right now based on the pairwise distance
-        	coord = [self.res_grid_pos[i] for i in self.res_grid_pos]
-        	M_dgrid = distance_matrix(coord, coord)
+            # distance from current amino acid to last two amino acids
+            # distance from actual amino acid sequence
+            # Mean squred error
+            # bcount is how much to go backward
 
-        	return -1*np.sum((self.M_fgrids[self.current_index] - M_dgrid)**2)
+            if len(self.current_status) < self.bcount + 1:
+                return None
+
+            track = 1
+            res = 0.0
+            for i in range (self.bcount):
+                d1 = self.distance(self.current_status[-1], self.current_status[-1-track])
+                d2 = self.distance(self.fcords[self.current_index][len(self.current_status) - 1], self.fcords[self.current_index][len(self.current_status) - 1 - track])
+
+                res += (d1-d2)**2
+                track += 1
+
+            return -1*res
 
         def distance(self,a,b):
         		a = list(map(float,a))
@@ -251,73 +273,33 @@ class environ_grid:
 
         def step(self, action):
                 ac = np.argmax(action)
-                #print (self.nframes,'frame')
-                # action space is N*6
-                res_index, dirn = divmod(ac,14)
 
-                # current place of residue in grid
-                cu_r = self.res_grid_pos[res_index]
-
-                # make that place zero and assign a new value
-                self.dgrid[tuple(cu_r)] = 0.0
-
-                new_place = cu_r+self.direcn[dirn]
+                # last place of residue in grid
+                cu_r = self.current_status[-1]
+                #print (ac, cu_r)
+                new_place = cu_r+self.direcn[ac]
 
                 penalty = 0.0
 
-                def check_chain(ind):
-                		lim = 3.0
-                		if ind > 1 and ind < max(self.nres) - 1:
-                				r1 = self.distance(new_place, self.res_grid_pos[ind - 1])
-                				r2 = self.distance(new_place, self.res_grid_pos[ind + 1])
-                				if r1 < lim and r2 < lim:
-                						return True 
-                				return False
-                		elif ind == 0:
-                				r2 = self.distance(new_place, self.res_grid_pos[ind + 1])
-                				if r2 < lim:
-                						return True 
-                		elif ind == max(self.nres) - 1:
-                				r1 = self.distance(new_place, self.res_grid_pos[ind - 1])
-                				if r1 < lim:
-                						return True 
-                		return False
-
-                # No overlap between residues
-                if list(new_place) in [list(self.res_grid_pos[pos]) for pos in self.res_grid_pos]:
-                        new_place = cu_r
-
+                if list(new_place) in self.current_status:
                         penalty = -100
 
-                # dont move if at grid corner
-                elif max(new_place) >= max(self.nres)+2 or min(new_place) < 0:
-                        new_place = cu_r
-
-                        penalty = -100
-
-                elif not check_chain(res_index):
-                		new_place = cu_r
-
-                		penalty = -100
-
-                self.dgrid[tuple(new_place)] = self.res_arrs[self.current_index][res_index]
-
-                self.res_grid_pos[res_index] = new_place
+                if penalty == 0.0:
+                    self.current_status.append(list(new_place))
 
                 if self.RENDER:
-                		lis = [self.res_grid_pos[t] for t in self.res_grid_pos]
-                		self.anim.update(lis)
+                    self.anim.update(self.current_status)
 
                 new_state = self.state()
 
-                reward = self.get_reward()+penalty
+                reward = self.get_reward()
 
-                if penalty != 0.0:
-                		reward = None
+                if reward:
+                    reward = reward+penalty
 
                 is_done = False
 
-                if self.nframes >= self.SYNC_TARGET_FRAMES:
+                if len(self.current_status) == len(self.fcords[self.current_index]):
                         #print ('done')
                         is_done = True
                 self.nframes += 1
@@ -326,27 +308,26 @@ class environ_grid:
 
 
         def sample_action_space(self, index = None):
-                s = np.zeros(max(self.nres)*14) # N residues * 14 direcn
+                s = np.zeros(len(self.direcn)) # N residues * 14 direcn
                 if index:
                         s[index] = 1.0
                         return s
-                i = np.random.randint(max(self.nres)*14)
+                i = np.random.randint(len(self.direcn))
                 s[i] = 1.0
                 return s
 
         def save_xyz(self, reward = 0, lis = None):
 
-                if 'temp_grid.npy' not in os.listdir('.'):
+                if 'temp_cord.npy' not in os.listdir('.'):
                         d = {}
                 else:
-                        d = np.load('temp_grid.npy').item()
+                        d = np.load('temp_cord.npy').item()
 
-                c = self.dgrid
                 print ('Reward:',reward)
                 #print (lis)
 
                 if lis is None:
-                		lis = [self.res_grid_pos[t] for t in self.res_grid_pos]
+                		lis = self.current_status
 
                 d[len(d)] = lis#np.copy(c)
 
