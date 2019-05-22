@@ -147,7 +147,7 @@ class Net(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-HIDDEN_SIZE = 1000#2560
+HIDDEN_SIZE = 500 
 
 net = Net(obs_size, HIDDEN_SIZE, n_actions)
 tgt_net = Net(obs_size, HIDDEN_SIZE, n_actions)
@@ -160,7 +160,7 @@ device = "cpu"
 
 EPSILON_DECAY_LAST_FRAME = 10**5
 EPSILON_START = 1.0
-EPSILON_FINAL = 0.00
+EPSILON_FINAL = 0.1
 
 MEAN_REWARD_BOUND = -0.01
 SYNC_TARGET_FRAMES = 500

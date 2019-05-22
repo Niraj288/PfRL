@@ -43,10 +43,10 @@ class environ_grid:
 
                 self.res_d = {}
 
-                self.res_arrs = [self.make_xleap_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
+                self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
 
                 self.nres = max([max(i) for i in self.res_arrs])
-                print (self.nres)
+                #print (self.nres)
                 self.ohe = self.make_ohe()
 
                 self.current_status = [[0.0,0.0,0.0]]
@@ -69,7 +69,7 @@ class environ_grid:
                         ohe[i][i] = 1.0
                 return ohe
 
-        def make_xleap_input_sequence(self, f, name):
+        def make_input_sequence(self, f, name):
 
                 def get_sequence(lines):
                         d,rid={},1
@@ -82,7 +82,7 @@ class environ_grid:
                                         s=line.strip().split()[-1]
                                         d[int(_0)]=rt
                                         rid+=1
-                        print (name, d)
+                        #print (name, d)
                         arr = [d[i] for i in range (1,len(d)+1)]
                         return arr
 
@@ -302,6 +302,8 @@ class environ_grid:
                 if len(self.current_status) == len(self.fcords[self.current_index]):
                         #print ('done')
                         is_done = True
+                        if self.test and self.RENDER:
+                            self.anim.plot_final(self.current_status, self.fcords[self.current_index])
                 self.nframes += 1
 
                 return new_state, reward, is_done
