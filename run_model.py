@@ -18,7 +18,13 @@ if RENDER:
 
 DEFAULT_ENV_NAME = "Protein folding"
 device = "cpu"
-env = environ_grid('2n2r.pdb',DEFAULT_ENV_NAME,RENDER, test)
+
+if len(sys.argv) > 1:
+        pdb = sys.argv[1]
+else:
+        pdb = '1k43.pdb'
+
+env = environ_grid(pdb,DEFAULT_ENV_NAME,RENDER, test)
 
 print (env)
 
@@ -38,7 +44,7 @@ class Net(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-HIDDEN_SIZE = 1000
+HIDDEN_SIZE = 500
 
 obs_size = env.obs_size
 n_actions = env.n_actions
@@ -46,11 +52,6 @@ n_actions = env.n_actions
 test_net = Net(obs_size, HIDDEN_SIZE, n_actions)
 test_net.load_state_dict(torch.load("models/model-best.dat", map_location=lambda storage, loc: storage))
 
-
-if len(sys.argv) > 1:
-	env.SYNC_TARGET_FRAMES = int(sys.argv[1])
-else:
-	env.SYNC_TARGET_FRAMES = 100
 
 state = env.reset()
 final_reward = -99999999
@@ -72,7 +73,7 @@ while True:
     #    env.save_xyz(total_reward)
     if done:
         break
-print("Final reward: %.2f" % final_reward)
+print("Max reward: %.2f" % final_reward)
 print("Action counts:", c)
 
 
