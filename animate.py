@@ -32,4 +32,4 @@ class render:
 		if ini:
 			plt.pause(5)
 		else:
-			plt.pause(1.001)
+			plt.pause(.05)

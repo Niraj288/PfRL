@@ -18,7 +18,7 @@ if RENDER:
 
 DEFAULT_ENV_NAME = "Protein folding"
 device = "cpu"
-env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME,RENDER, test)
+env = environ_grid('2n2r.pdb',DEFAULT_ENV_NAME,RENDER, test)
 
 print (env)
 
