@@ -1,8 +1,8 @@
 import sys
 import os
 import numpy as np
-from scipy.spatial import distance_matrix
-import scipy.spatial as spatial
+#from scipy.spatial import distance_matrix
+#import scipy.spatial as spatial
 import atom_data as ad
 import math 
 from math import log10, floor
@@ -17,15 +17,19 @@ class environ_grid:
                 self.SYNC_TARGET_FRAMES = 100
                 if 'proteins' not in os.listdir('.'):
                     raise Exception('No folder named proteins found !')
-                self.pdb_files = [fi for fi in os.listdir('proteins/') if fi[-4:] == '.pdb']
+                
                 #protein.__init__(self, pdb)
                 self.current_index = 0
                 if test:
-                        for i in range (len(self.pdb_files)):
-                                if pdb == self.pdb_files[i]:
-                                        self.current_index = i
-                                        break
-                        print ('Protein folding starting on', self.pdb_files[self.current_index], i)
+                        self.pdb_files = [pdb]
+                        #for i in range (len(self.pdb_files)):
+                        #        if pdb == self.pdb_files[i]:
+                        #                self.current_index = i
+                        #                break
+                        print ('Protein folding starting on', self.pdb_files[self.current_index])
+                else:
+                        self.pdb_files = [fi for fi in os.listdir('proteins/') if fi[-4:] == '.pdb']
+
                 self.initialize()
                 if self.RENDER:
                         self.anim = animate.render(self.nres/2+1)
@@ -41,15 +45,26 @@ class environ_grid:
                                  [1.0,-1.0,1.0], [-1.0,1.0,1.0], [-1.0,-1.0,-1.0], [-1.0,-1.0,1.0],
                                  [-1.0,1.0,-1.0], [1.0,-1.0,-1.0]])
 
-                self.res_d = {}
+                if self.test:
+                    self.res_d = np.load('models/res_d.npy').item()
+                    chk = len(self.res_d)
+                    self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
+                    if chk != len(self.res_d):
+                        raise Exception('Unknown residue detected !!')
+                else:
+                    self.res_d = {}
 
-                self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
+                    self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
 
-                self.nres = max([max(i) for i in self.res_arrs])
+                self.nres = len(self.res_d)#max([max(i) for i in self.res_arrs])
                 #print (self.nres)
                 self.ohe = self.make_ohe()
 
                 self.current_status = [[0.0,0.0,0.0]]
+
+                # save res_dictionary in the models
+                if not self.test:
+                    np.save('models/res_d.npy', self.res_d)
 
                 # how much to look in future
                 self.fcounts = 10
@@ -87,7 +102,10 @@ class environ_grid:
                         arr = [d[i] for i in range (1,len(d)+1)]
                         return arr
 
-                file = open('proteins/'+f,'r')
+                if self.test:
+                    file = open(f,'r')
+                else:
+                    file = open('proteins/'+f,'r')
                 lines= file.readlines()
                 file.close()
 
@@ -157,7 +175,10 @@ class environ_grid:
 
 
                 def get_grid(pdb):
-                        f = open('proteins/'+pdb, 'r')
+                        if self.test:
+                            f = open(pdb, 'r')
+                        else:
+                            f = open('proteins/'+pdb, 'r')
                         lines = f.readlines()
                         f.close()
 
@@ -344,4 +365,4 @@ class environ_grid:
 
 if __name__ == '__main__':
 
-	env = environ_grid_multiple_pdb(sys.argv[1], 'test')
+	env = environ_grid(sys.argv[1], 'test')

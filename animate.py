@@ -48,10 +48,10 @@ class render:
                 l1 = l1 - np.mean(l1, axis = 0)
                 l2 = l2 - np.mean(l2, axis = 0)
 
-                L, rmsd = align.alin(l2, l1)
-                l1 = np.copy(L)
+                #L, rmsd = align.alin(l2, l1)
+                #l1 = np.copy(L)
 
-                print ('RMSD :', rmsd)
+                #print ('RMSD :', rmsd)
 
                 x1, y1, z1 = l1[:,0],l1[:,1],l1[:,2]
                 x2, y2, z2 = l2[:,0],l2[:,1],l2[:,2]
