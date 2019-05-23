@@ -72,7 +72,7 @@ class environ_grid:
         def make_input_sequence(self, f, name):
 
                 def get_sequence(lines):
-                        d,rid={},1
+                        d,rid={},{}
                         for line in lines:
                                 if "TER" in line.split()[0]:
                                         break
@@ -80,8 +80,9 @@ class environ_grid:
                                         #print line
                                         id,at,rt,_,_0,x,y,z=line.strip().split()[1:9]
                                         s=line.strip().split()[-1]
-                                        d[int(_0)]=rt
-                                        rid+=1
+                                        d[len(rid)+1]=rt
+                                        if int(_0) not in rid:
+                                            rid[int(_0)] = 1
                         #print (name, d)
                         arr = [d[i] for i in range (1,len(d)+1)]
                         return arr

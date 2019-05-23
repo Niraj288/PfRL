@@ -68,9 +68,9 @@ while True:
     state, reward, done = env.step(action)
     if reward and final_reward < reward: # += reward
         final_reward = reward
-    print (reward)
-    #if RENDER:
-    #    env.save_xyz(total_reward)
+    #print (reward)
+    if 1 or RENDER:
+        env.save_xyz(reward)
     if done:
         break
 print("Max reward: %.2f" % final_reward)
