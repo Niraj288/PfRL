@@ -1,9 +1,9 @@
 import sys
 import os
 import numpy as np
-#from scipy.spatial import distance_matrix
-#import scipy.spatial as spatial
-#import atom_data as ad
+from scipy.spatial import distance_matrix
+import scipy.spatial as spatial
+import atom_data as ad
 import math 
 from math import log10, floor
 import animate
@@ -17,19 +17,15 @@ class environ_grid:
                 self.SYNC_TARGET_FRAMES = 100
                 if 'proteins' not in os.listdir('.'):
                     raise Exception('No folder named proteins found !')
-                
+                self.pdb_files = [fi for fi in os.listdir('proteins/') if fi[-4:] == '.pdb']
                 #protein.__init__(self, pdb)
                 self.current_index = 0
                 if test:
-                        self.pdb_files = [pdb]
-                        #for i in range (len(self.pdb_files)):
-                        #        if pdb == self.pdb_files[i]:
-                        #                self.current_index = i
-                        #                break
-                        print ('Protein folding starting on', self.pdb_files[self.current_index])
-                else:
-                        self.pdb_files = [fi for fi in os.listdir('proteins/') if fi[-4:] == '.pdb']
-
+                        for i in range (len(self.pdb_files)):
+                                if pdb == self.pdb_files[i]:
+                                        self.current_index = i
+                                        break
+                        print ('Protein folding starting on', self.pdb_files[self.current_index], i)
                 self.initialize()
                 if self.RENDER:
                         self.anim = animate.render(self.nres/2+1)
@@ -45,32 +41,21 @@ class environ_grid:
                                  [1.0,-1.0,1.0], [-1.0,1.0,1.0], [-1.0,-1.0,-1.0], [-1.0,-1.0,1.0],
                                  [-1.0,1.0,-1.0], [1.0,-1.0,-1.0]])
 
-                if self.test:
-                    self.res_d = np.load('models/res_d.npy').item()
-                    chk = len(self.res_d)
-                    self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
-                    if chk != len(self.res_d):
-                        raise Exception('Unknown residue detected !!')
-                else:
-                    self.res_d = {}
+                self.res_d = {}
 
-                    self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
+                self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
 
-                self.nres = len(self.res_d)#max([max(i) for i in self.res_arrs])
+                self.nres = max([max(i) for i in self.res_arrs])
                 #print (self.nres)
                 self.ohe = self.make_ohe()
 
                 self.current_status = [[0.0,0.0,0.0]]
 
-                # save res_dictionary in the models
-                if not self.test:
-                    np.save('models/res_d.npy', self.res_d)
-
                 # how much to look in future
-                self.fcounts = 10
+                self.fcounts = 5
 
                 # bcount is how much to go backward for reward
-                self.bcount = 5
+                self.bcount = 3
                 #print ('i', self.igrid)
                 # initial grid
                 print (self.res_d)
@@ -87,7 +72,7 @@ class environ_grid:
         def make_input_sequence(self, f, name):
 
                 def get_sequence(lines):
-                        d,rid={},{}
+                        d,rid={},1
                         for line in lines:
                                 if "TER" in line.split()[0]:
                                         break
@@ -95,17 +80,13 @@ class environ_grid:
                                         #print line
                                         id,at,rt,_,_0,x,y,z=line.strip().split()[1:9]
                                         s=line.strip().split()[-1]
-                                        d[len(rid)+1]=rt
-                                        if int(_0) not in rid:
-                                            rid[int(_0)] = 1
+                                        d[int(_0)]=rt
+                                        rid+=1
                         #print (name, d)
                         arr = [d[i] for i in range (1,len(d)+1)]
                         return arr
 
-                if self.test:
-                    file = open(f,'r')
-                else:
-                    file = open('proteins/'+f,'r')
+                file = open('proteins/'+f,'r')
                 lines= file.readlines()
                 file.close()
 
@@ -175,10 +156,7 @@ class environ_grid:
 
 
                 def get_grid(pdb):
-                        if self.test:
-                            f = open(pdb, 'r')
-                        else:
-                            f = open('proteins/'+pdb, 'r')
+                        f = open('proteins/'+pdb, 'r')
                         lines = f.readlines()
                         f.close()
 
@@ -233,7 +211,8 @@ class environ_grid:
 
         def state(self):
                 cur_res = len(self.current_status)-1
-                lis = self.ohe[self.res_arrs[self.current_index][cur_res] - 1]
+                #print (self.res_arrs[self.current_index], cur_res)
+                lis = self.ohe[self.res_arrs[self.current_index][cur_res]-1]
                 # Places where next residue cannot move
                 # overlap in 14 directions
                 t = np.zeros(len(self.direcn))
@@ -249,18 +228,22 @@ class environ_grid:
                     t[i] = 1.0
 
                 # make ohe for all future res and stack
-                for i in range (cur_res + 1 ,cur_res + 1 + self.fcounts):
+                for i in range (cur_res - 2 ,cur_res - 2 + self.fcounts):
                     if i >= len(self.fcords[self.current_index]) or i < 0:
                         lis = np.concatenate((lis, np.zeros(self.nres)))
                     else:
                         #print (self.res_arrs[self.current_index])
                         lis = np.concatenate((lis, self.ohe[self.res_arrs[self.current_index][i]-1]))
                 #print (np.array(np.concatenate((lis,t)), dtype = 'float').shape)
+                #l_temp = list(np.array(self.current_status[-3:]).flatten())
+                #if len(l_temp) < 9:
+                #        k = 9 - len(l_temp)
+                #        for i in range (k):
+                #                l_temp += [0.0]
                 l_temp = np.zeros(3)
                 if len(self.current_status) > 1:
                         l_temp = np.array(self.current_status[-1]) - np.array(self.current_status[-2])
                 lis = np.concatenate((np.array(l_temp), lis))
-                
                 return np.array(np.concatenate((lis,t)), dtype = 'float').flatten()
 
 
@@ -270,27 +253,20 @@ class environ_grid:
             # distance from actual amino acid sequence
             # Mean squred error
             # bcount is how much to go backward
-            #print (self.current_status)
 
             if len(self.current_status) < self.bcount + 1:
-                return -0.1#None
+                return None
 
             track = 1
             res = 0.0
             for i in range (self.bcount):
                 d1 = self.distance(self.current_status[-1], self.current_status[-1-track])
                 d2 = self.distance(self.fcords[self.current_index][len(self.current_status) - 1], self.fcords[self.current_index][len(self.current_status) - 1 - track])
-                #print (d1, d2, i)
+
                 res += (d1-d2)**2
                 track += 1
-            '''   
-            if res < 1.0:
-                res = 1.0
-            else:
-                res = -1.0
-            '''
 
-            return -res
+            return -1*res
 
         def distance(self,a,b):
         		a = list(map(float,a))
@@ -300,8 +276,8 @@ class environ_grid:
 
 
         def step(self, action):
-                #ac = np.argmax(action)
-                ac = action
+                ac = np.argmax(action)
+
                 # last place of residue in grid
                 cu_r = self.current_status[-1]
                 #print (ac, cu_r)
@@ -316,7 +292,6 @@ class environ_grid:
                     self.current_status.append(list(new_place))
 
                 if self.RENDER:
-                    
                     self.anim.update(self.current_status)
 
                 new_state = self.state()
@@ -325,7 +300,8 @@ class environ_grid:
 
                 if reward:
                     reward = reward+penalty
-                    
+                if penalty != 0.0:
+                    reward = None
 
                 is_done = False
 
@@ -333,11 +309,10 @@ class environ_grid:
                         #print ('done')
                         is_done = True
                         if self.test and self.RENDER:
-                            #pass
                             self.anim.plot_final(self.current_status, self.fcords[self.current_index])
                 self.nframes += 1
 
-                return new_state, reward, is_done, self.nframes
+                return new_state, reward, is_done
 
 
         def sample_action_space(self, index = None):
@@ -368,10 +343,10 @@ class environ_grid:
 
         def __str__(self):
                 return self.name
-            
-        def render(self):
-                self.anim.update(self.current_status)
-                
 
 
 
+
+if __name__ == '__main__':
+
+	env = environ_grid_multiple_pdb(sys.argv[1], 'test')

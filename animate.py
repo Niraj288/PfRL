@@ -45,11 +45,8 @@ class render:
 
                 l1 = np.array(lis1)
                 l2 = np.array(lis2)
-                l1 = l1 - np.mean(l1, axis = 0)
-                l2 = l2 - np.mean(l2, axis = 0)
 
-                L, rmsd = align.alin(l2, l1)
-                l1 = np.copy(L)
+                l1, l2, rmsd = align.alin(l2, l1)
 
                 print ('RMSD :', rmsd)
 
