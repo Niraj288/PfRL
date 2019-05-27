@@ -375,3 +375,6 @@ class environ_grid:
 
 
 
+
+if __name__ == '__main__':
+	env = environ_grid(sys.argv[1], 'test')
