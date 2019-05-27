@@ -13,6 +13,13 @@ conda install -c ambermd ambertools
 
 source ~/amber/bin/amber.sh
 
+## Just run for test (steps)
+
+Train the model for protein 1k43
+1. copy 1k43.pdb in some folder
+2. From that folder run
+3. 'python dqn.py'
+
 
 ## Protein class description
 
@@ -22,7 +29,7 @@ When called, the class performs some priliminary functions to get started from p
 
 E.g. p = protein('1mzi.pdb')
 
-### coordi
+### icoord
 
 gives the initial coordinates of the straight chain of protein atoms,
 shape = (-1,3)
@@ -36,3 +43,27 @@ shape = (-1)
 
 args = coordinates of shape (-1,3)],
 returns Potential energy of the coordinates provided
+
+## Environment
+
+The class environ inherits from protein class
+
+### reset
+
+Resets the coordinates to initial coordinates
+
+### state
+
+Give the information about the environment. Currently return pairwise distance for each atom in the protein
+
+### step
+
+performs the action and return new_state, reward, is_done
+
+### smaple_action_space
+
+Sample a random action
+
+### save_xyz
+
+Save xyz information for render purpose

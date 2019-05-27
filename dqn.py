@@ -5,8 +5,9 @@ import collections
 import torch
 import torch.nn as nn
 import torch.optim as optim
-#import gym
-from protein import environ
+#from multiple_protein import environ_grid
+#from protein import environ, environ_coord, environ_grid
+from denovo import environ_grid
 
 GAMMA = 0.9
 
@@ -55,12 +56,16 @@ class Agent:
             q_vals_v = net(state_v)
             # get idx of best action
             _, act_v = torch.max(q_vals_v, dim=1)
-            action = int(act_v.item())
+            action = self.env.sample_action_space(int(act_v.item()))
+        #print (np.argmax(action), 'action') 
 
         # do step in the environment
         new_state, reward, is_done = self.env.step(action)
-        self.total_reward += reward
+        #self.total_reward += reward
         #new_state = new_state
+
+	# save coord for render
+        #self.env.save_xyz(reward)
 
         # add to replay buffer
         exp = Experience(self.state, action, reward, is_done, new_state)
@@ -70,7 +75,8 @@ class Agent:
         if is_done:
             done_reward = self.total_reward
             self._reset()
-        return done_reward
+        #return self.total_reward
+        return reward
 
 
 def calc_loss(batch, net, tgt_net, device="cpu"):
@@ -82,16 +88,16 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
     # send the observed states to Net 
     states_v = torch.tensor(states, dtype = torch.float).to(device)
     next_states_v = torch.tensor(next_states, dtype = torch.float).to(device)
-    actions_v = torch.tensor(actions).to(device, dtype = torch.long)
+    actions_v = torch.tensor(actions, dtype = torch.long).to(device)
     rewards_v = torch.tensor(rewards, dtype = torch.float).to(device)
     done_mask = torch.ByteTensor(dones).to(device)
 
     # get the Network actions for given states
     #  but only for states that did not end in a 'done' state
-    #print (net(states_v).shape, actions_v.view(-1, 4248).unsqueeze(-1).shape)
-    state_action_values = net(states_v).gather(1, actions_v.unsqueeze(-1)).squeeze(-1)
+    # print (net(states_v).view(-1,4248,1).shape, actions_v.unsqueeze(-1).shape)
+    state_action_values = net(states_v).view(-1, actions_v.shape[1], 1).gather(1, actions_v.unsqueeze(-1)).squeeze(-1).max(1)[0]
     next_state_values = tgt_net(next_states_v).max(1)[0]
-    print (state_action_values.shape, next_state_values.shape)
+    #print ('Working')
     next_state_values[done_mask] = 0.0 # ensures these are only rewards
     
     # detach the calculation we just made from computation graph
@@ -110,7 +116,7 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
 
 DEFAULT_ENV_NAME = "Protein folding"
 
-env = environ('1k43.pdb',DEFAULT_ENV_NAME)
+env = environ_grid('1k43.pdb',DEFAULT_ENV_NAME, 0)
 
 print (env)
 
@@ -122,18 +128,26 @@ print(obs_size,n_actions)
 class Net(nn.Module):
     def __init__(self, obs_size, hidden_size, n_actions):
         super(Net, self).__init__()
+        def init_weights(m):
+            if type(m) == nn.Linear:
+                    torch.nn.init.xavier_uniform(m.weight)
+                    m.bias.data.fill_(0.0)
+            
         self.net = nn.Sequential(
             nn.Linear(obs_size, hidden_size),
             nn.ReLU(),
             nn.Linear(hidden_size, int(hidden_size/2)),
             nn.ReLU(),
+            #nn.Linear(int(hidden_size/2), int(hidden_size/4)),
+	        #   nn.ReLU(),
             nn.Linear(int(hidden_size/2), n_actions)
         )
+        self.net.apply(init_weights)
 
     def forward(self, x):
         return self.net(x)
 
-HIDDEN_SIZE = 256
+HIDDEN_SIZE = 500 
 
 net = Net(obs_size, HIDDEN_SIZE, n_actions)
 tgt_net = Net(obs_size, HIDDEN_SIZE, n_actions)
@@ -146,10 +160,10 @@ device = "cpu"
 
 EPSILON_DECAY_LAST_FRAME = 10**5
 EPSILON_START = 1.0
-EPSILON_FINAL = 0.0
+EPSILON_FINAL = 0.1
 
-MEAN_REWARD_BOUND = 150
-SYNC_TARGET_FRAMES = 50
+MEAN_REWARD_BOUND = -0.01
+SYNC_TARGET_FRAMES = 500
 BATCH_SIZE = 16
 REPLAY_SIZE = 500
 REPLAY_START_SIZE = 500
@@ -158,6 +172,8 @@ LEARNING_RATE = 1e-4
 buffer = ExperienceBuffer(REPLAY_SIZE)
 agent = Agent(env, buffer)
 epsilon = EPSILON_START
+
+env.SYNC_TARGET_FRAMES = SYNC_TARGET_FRAMES
 
 optimizer = optim.Adam(net.parameters(), lr=LEARNING_RATE)
 total_rewards = []
@@ -173,12 +189,13 @@ while True:
 
     # play step and add to experience buffer
     reward = agent.play_step(net, epsilon, device=device)
+    #print ('trueframe',frame_idx)
     if reward is not None:
         total_rewards.append(reward)
         ts_frame = frame_idx
         
         # calculate progress of rewards
-        mean_reward = np.mean(total_rewards[-100:])
+        mean_reward = np.mean(total_rewards[-10:]) 
         if frame_idx % 100==0:
             print("%d: done %d iterations, mean reward %.3f, eps %.2f" % (
                 frame_idx, len(total_rewards), mean_reward, epsilon
@@ -191,7 +208,7 @@ while True:
             best_mean_reward = mean_reward
             
         # quit if we have solved the problem
-        if mean_reward > 0.8:
+        if mean_reward > MEAN_REWARD_BOUND:
             print("Solved in %d frames!" % frame_idx)
             break
 
