@@ -46,7 +46,7 @@ class render:
                 l1 = np.array(lis1)
                 l2 = np.array(lis2)
 
-                l1, l2, rmsd = align.alin(l2, l1)
+                l1, l2, rmsd = align.alin(l1, l2)
 
                 print ('RMSD :', rmsd)
 
@@ -61,5 +61,19 @@ class render:
 
                 plt.draw()
                 plt.show(block = True)
+
+if __name__ == '__main__':
+        b = np.array([[0,0,0], [1,1,1], [2,2,2]], dtype = 'float') # original molecule
+        a = np.array([[0,0,0], [-1.5,-1,-1], [-2,-2,-2]], dtype = 'float') # fake molecule	
+        r = render(5)
+        r.plot_final(a,b)
+
+
+
+
+
+
+
+
 
 
