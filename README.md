@@ -2,6 +2,13 @@
 
 Protein folding via Reinforcement Learning (PfRL)
 
+# PfRL with Improved dqn
+
+Example :
+
+Train : python idqn.py
+Test : python test_model.py path_to_pdb_file
+
 ## Requirements
 
 1. Python 3
