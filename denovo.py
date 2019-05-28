@@ -55,7 +55,6 @@ class environ_grid:
                     self.res_d = {}
 
                     self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
-
                 self.nres = len(self.res_d)#max([max(i) for i in self.res_arrs])
                 #print (self.nres)
                 self.ohe = self.make_ohe()
@@ -67,10 +66,10 @@ class environ_grid:
                     np.save('models/res_d.npy', self.res_d)
 
                 # how much to look in future
-                self.fcounts = 10
+                self.fcounts = 6
 
                 # bcount is how much to go backward for reward
-                self.bcount = 5
+                self.bcount = -1#5
                 #print ('i', self.igrid)
                 # initial grid
                 print (self.res_d)
@@ -91,13 +90,14 @@ class environ_grid:
                         for line in lines:
                                 if "TER" in line.split()[0]:
                                         break
-                                if line.split()[0] in ['ATOM','HETATM']:
-                                        #print line
+                                if line.split()[0] in ['ATOM']:
+                                        #print (line)
                                         id,at,rt,_,_0,x,y,z=line.strip().split()[1:9]
                                         s=line.strip().split()[-1]
-                                        d[len(rid)+1]=rt
-                                        if int(_0) not in rid:
-                                            rid[int(_0)] = 1
+                                        #d[len(rid)+1]=rt+_0
+                                        if rt+_0 not in rid:
+                                            d[len(rid)+1]=rt
+                                            rid[rt+_0] = 1
                         #print (name, d)
                         arr = [d[i] for i in range (1,len(d)+1)]
                         return arr
@@ -123,8 +123,10 @@ class environ_grid:
         def init_args(self):
 
 		# Make final conformation grids
-                self.fcords = self.make_fcords()		
-
+                self.fcords = self.make_fcords()	
+                for i in range (len(self.pdb_files)):
+                        if len(self.fcords[i]) != len(self.res_arrs[i]):
+                                raise Exception('Multiple chains detected in protein : '+self.pdb_files[i])	
                 state = self.reset()
                 l = state.shape[0]
                 self.obs_size = l
@@ -253,14 +255,27 @@ class environ_grid:
                     if i >= len(self.fcords[self.current_index]) or i < 0:
                         lis = np.concatenate((lis, np.zeros(self.nres)))
                     else:
-                        #print (self.res_arrs[self.current_index])
+                        #print (len(self.fcords[self.current_index]), len(self.res_arrs[self.current_index]), i, self.pdb_files[self.current_index])#print (self.res_arrs[self.current_index])
                         lis = np.concatenate((lis, self.ohe[self.res_arrs[self.current_index][i]-1]))
                 #print (np.array(np.concatenate((lis,t)), dtype = 'float').shape)
+                # current vector
                 l_temp = np.zeros(3)
                 if len(self.current_status) > 1:
                         l_temp = np.array(self.current_status[-1]) - np.array(self.current_status[-2])
                 lis = np.concatenate((np.array(l_temp), lis))
+
+                # last n coordinates of residues
+                n = 5
+                n_tem = np.zeros(n*4)
                 
+                for i in range (n):
+                        if cur_res-i-1 < 0:
+                                l = np.zeros(4)
+                        else:
+                                l = [self.res_arrs[self.current_index][cur_res-i-1]]+list(self.current_status[-1 -i-1])
+                        for j in range (4):
+                                n_tem[i*4+j] = l[j]
+                lis = np.concatenate((lis,n_tem))
                 return np.array(np.concatenate((lis,t)), dtype = 'float').flatten()
 
 
@@ -272,16 +287,20 @@ class environ_grid:
             # bcount is how much to go backward
             #print (self.current_status)
 
-            if len(self.current_status) < self.bcount + 1:
-                return -0.1#None
+            if self.bcount != -1 and len(self.current_status) < self.bcount + 1:
+                return -0.001#None
 
             track = 1
             res = 0.0
-            for i in range (self.bcount):
+            bref = self.bcount
+            gamma = 0.95
+            if self.bcount == -1:
+                bref = len(self.current_status) - 1
+            for i in range (bref):
                 d1 = self.distance(self.current_status[-1], self.current_status[-1-track])
                 d2 = self.distance(self.fcords[self.current_index][len(self.current_status) - 1], self.fcords[self.current_index][len(self.current_status) - 1 - track])
                 #print (d1, d2, i)
-                res += (d1-d2)**2
+                res += gamma**2*(d1-d2)**2
                 track += 1
             '''   
             if res < 1.0:
@@ -304,13 +323,14 @@ class environ_grid:
                 ac = action
                 # last place of residue in grid
                 cu_r = self.current_status[-1]
-                #print (ac, cu_r)
+                #print (ac, cu_r )
                 new_place = cu_r+self.direcn[ac]
-
+                #print (list(new_place) == self.current_status[0])
                 penalty = 0.0
 
                 if list(new_place) in self.current_status:
-                        penalty = -100
+                        #print ('penalty')
+                        penalty = -100.0
 
                 if penalty == 0.0:
                     self.current_status.append(list(new_place))
@@ -323,7 +343,7 @@ class environ_grid:
 
                 reward = self.get_reward()
 
-                if reward:
+                if reward is not None:
                     reward = reward+penalty
                     
 
@@ -375,6 +395,3 @@ class environ_grid:
 
 
 
-
-if __name__ == '__main__':
-	env = environ_grid(sys.argv[1], 'test')
