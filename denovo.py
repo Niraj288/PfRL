@@ -10,11 +10,25 @@ import animate
 
 
 class environ_grid:
-        def __init__(self, pdb, name, RENDER = 0, test = 0):
+        def __init__(self, pdb, 
+                           name, 
+                           RENDER = 0, 
+                           test = 0, 
+                           track = 5,
+                           fcounts = 6,
+                           bcount = -1):
                 self.name = name
                 self.test = test
                 self.RENDER = RENDER
                 self.SYNC_TARGET_FRAMES = 100
+
+                # how much to look in future
+                self.fcounts = fcounts
+
+                # bcount is how much to go backward for reward
+                self.bcount = bcount #5
+
+                self.res_track = track # how much residue coordinates be included from generated sequence in the state
                 if 'proteins' not in os.listdir('.'):
                     raise Exception('No folder named proteins found !')
                 
@@ -65,14 +79,10 @@ class environ_grid:
                 if not self.test:
                     np.save('models/res_d.npy', self.res_d)
 
-                # how much to look in future
-                self.fcounts = 6
-
-                # bcount is how much to go backward for reward
-                self.bcount = -1#5
+                
                 #print ('i', self.igrid)
                 # initial grid
-                print (self.res_d)
+                print ('\nUnique residues :',self.res_d)
 
         def make_ohe(self):
                 l = self.nres
@@ -127,6 +137,8 @@ class environ_grid:
                 for i in range (len(self.pdb_files)):
                         if len(self.fcords[i]) != len(self.res_arrs[i]):
                                 raise Exception('Multiple chains detected in protein : '+self.pdb_files[i])	
+                if self.res_track == -1:
+                    self.res_track = max([len(i) for i in self.res_arrs])
                 state = self.reset()
                 l = state.shape[0]
                 self.obs_size = l
@@ -265,7 +277,7 @@ class environ_grid:
                 lis = np.concatenate((np.array(l_temp), lis))
 
                 # last n coordinates of residues
-                n = 5
+                n = self.res_track
                 n_tem = np.zeros(n*4)
                 
                 for i in range (n):
