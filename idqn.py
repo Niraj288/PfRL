@@ -212,7 +212,7 @@ while True:
             speed
         ))
         
-        if best_mean_reward is None or best_mean_reward < mean_reward:
+        if best_mean_reward is None or best_mean_reward < mean_reward or frame_idx % 100000 == 0:
             torch.save(net.state_dict(),"models/" + DEFAULT_ENV_NAME + "-best.dat")
             if best_mean_reward is not None:
                 print("Best mean reward updated %.3f -> %.3f, model saved" % (best_mean_reward, mean_reward))
