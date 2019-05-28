@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from denovo import environ_grid
+import sys
 
 class DQN(nn.Module):
     def __init__(self, obs_size, hidden_size, n_actions):
@@ -122,35 +123,62 @@ class ExperienceBuffer:
         return np.array(states), np.array(actions), np.array(rewards, dtype=np.float32), \
                np.array(dones, dtype=np.uint8), np.array(next_states)
 
+def read_inp():
+    inp = 'inp'
+    if len(sys.argv) > 1:
+        inp = sys.argv[1]
+    f=open(inp,'r')
+    lines=f.readlines()
+    f.close()
+    dic={}
+    for line in lines:
+        if '#' in line or len(line.strip().split())==0:
+            continue
+        a,b=line.strip().split()
+        dic[a]=b 
+    return dic
 
-DEFAULT_ENV_NAME = "1k43"
-MEAN_REWARD_BOUND = -3.0
+params = read_inp()
+for i in params:
+    print (i, params[i])
 
-env = environ_grid('1k43.pdb', DEFAULT_ENV_NAME, 0)
+DEFAULT_ENV_NAME = params['DEFAULT_ENV_NAME']#"1k43"
+MEAN_REWARD_BOUND = eval(params['MEAN_REWARD_BOUND'])#-3.0
+RENDER = eval(params['RENDER'])#0
 
-GAMMA = 0.99
-BATCH_SIZE = 32
-REPLAY_SIZE = 10000
-LEARNING_RATE = 1e-4
-SYNC_TARGET_FRAMES = 1000
-REPLAY_START_SIZE = 10000
+FCOUNTS = eval(params['FCOUNTS'])#10
+BCOUNT = eval(params['BCOUNT'])#-1
+TRACK = eval(params['TRACK'])#5 # how much residue coordinates be included from generated sequence
 
-EPSILON_DECAY_LAST_FRAME = 10**6
-EPSILON_START = 1.0
-EPSILON_FINAL = 0.05
+env = environ_grid('1k43.pdb', DEFAULT_ENV_NAME, RENDER, 0, TRACK, FCOUNTS, BCOUNT)
+
+GAMMA = eval(params['GAMMA'])#0.99
+BATCH_SIZE = eval(params['BATCH_SIZE'])#32
+REPLAY_SIZE = eval(params['REPLAY_SIZE'])#10000
+LEARNING_RATE = eval(params['LEARNING_RATE'])#1e-4
+SYNC_TARGET_FRAMES = eval(params['SYNC_TARGET_FRAMES'])#1000
+REPLAY_START_SIZE = eval(params['REPLAY_START_SIZE'])#10000
+
+EPSILON_DECAY_LAST_FRAME = eval(params['EPSILON_DECAY_LAST_FRAME'])#10**6
+EPSILON_START = eval(params['EPSILON_START'])#1.0
+EPSILON_FINAL = eval(params['EPSILON_FINAL'])#0.05
+
+MAX_ITER = eval(params['MAX_ITER'])#10**9
 
 
 Experience = collections.namedtuple('Experience', 
                                     field_names=['state', 'action', 'reward', 'done', 'new_state'])
 
 
-device = "cpu"
+device = params['device']#'cpu'
+
+HIDDEN_SIZE = eval(params['HIDDEN_SIZE'])#256
 
 #env = make_env(DEFAULT_ENV_NAME)
 
-net = DQN(env.obs_size, 256, env.n_actions).to(device)
+net = DQN(env.obs_size, HIDDEN_SIZE, env.n_actions).to(device)
 #net.load_state_dict(torch.load("models/" +DEFAULT_ENV_NAME + "-best.dat", map_location=lambda storage, loc: storage))
-tgt_net = DQN(env.obs_size, 256, env.n_actions).to(device)
+tgt_net = DQN(env.obs_size, HIDDEN_SIZE, env.n_actions).to(device)
 print(net)
 
 buffer = ExperienceBuffer(REPLAY_SIZE)
@@ -192,6 +220,10 @@ while True:
         if mean_reward > MEAN_REWARD_BOUND:
             print("Solved in %d frames!" % frame_idx)
             break
+
+    if frame_idx >= MAX_ITER:
+        print ('Maximum iteration reached')
+        break
 
     if len(buffer) < REPLAY_START_SIZE:
         continue
