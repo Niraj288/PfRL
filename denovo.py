@@ -210,6 +210,9 @@ class environ_grid:
                                 #print (cp)
                                 r_coord.append(np.array(cp))
 
+                        if self.test:
+                            self.ref_coord = np.copy(r_coord)
+
                         # first residue at 0,0,0
                         cur = [0,0,0]
 
@@ -367,6 +370,7 @@ class environ_grid:
                         if self.test and self.RENDER:
                             #pass
                             self.anim.plot_final(self.current_status, self.fcords[self.current_index])
+                            self.map_pdb()
                 self.nframes += 1
 
                 return new_state, reward, is_done, self.nframes
@@ -397,6 +401,29 @@ class environ_grid:
                 d[len(d)] = lis#np.copy(c)
 
                 np.save('temp_grid.npy', d)
+
+        def map_pdb(self):
+
+                dis = []
+                for i in range (1, len(self.current_status)):
+                    dis.append(self.distance(self.ref_coord[i], self.ref_coord[i-1]))
+
+                vec = []
+                for i in range (1, len(self.current_status)):
+                    vec.append(np.array(self.current_status[i]) - np.array(self.current_status[i-1]))
+
+                # place first one at 0,0,0
+                cords = [[0.0,0.0,0.0]]
+                for i in range (len(vec)):
+                    # normalize vector
+                    v = vec[i]/np.linalg.norm(vec[i])
+                    new_cord = dis[i]*v + cords[i]
+                    cords.append(new_cord)
+
+                r = animate.render(np.amax(cords)/2)
+
+                r.plot_final(cords, self.ref_coord)
+
 
         def __str__(self):
                 return self.name
