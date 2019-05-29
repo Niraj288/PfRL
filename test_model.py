@@ -86,7 +86,7 @@ while True:
     total_reward += reward
     if done:
         break
-#print("Total reward: %.2f" % total_reward)
+print("Total reward: %.2f" % total_reward)
 print("Action counts:", c)
 
 
