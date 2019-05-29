@@ -53,10 +53,10 @@ class render:
                 x1, y1, z1 = l1[:,0],l1[:,1],l1[:,2]
                 x2, y2, z2 = l2[:,0],l2[:,1],l2[:,2]
 
-                self.lines1 = self.ax.scatter(x1, y1, z1, c = 'r', s = 10)
+                self.lines1 = self.ax.scatter(x1, y1, z1, c = 'r', s = 200)
                 self.lines2 = self.ax.plot(x1, y1, z1, c = 'r')
 
-                self.lines3 = self.ax.scatter(x2, y2, z2, c = 'g', s = 10)
+                self.lines3 = self.ax.scatter(x2, y2, z2, c = 'g', s = 200)
                 self.lines4 = self.ax.plot(x2, y2, z2, c = 'g')
 
                 plt.draw()
