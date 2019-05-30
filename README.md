@@ -6,6 +6,8 @@ Protein folding via Reinforcement Learning (PfRL)
 
 Example :
 
+Make sure you have models and proteins folder in the current directory
+
 Train : python idqn.py path_to_inp
 
 Test : python test_model.py path_to_inp path_to_pdb_file
