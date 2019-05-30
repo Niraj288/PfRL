@@ -59,7 +59,7 @@ class environ_grid:
                                  [1.0,-1.0,1.0], [-1.0,1.0,1.0], [-1.0,-1.0,-1.0], [-1.0,-1.0,1.0],
                                  [-1.0,1.0,-1.0], [1.0,-1.0,-1.0]])
 
-                if self.test:
+                if 0:#self.test:
                     self.res_d = np.load('models/res_d.npy').item()
                     chk = len(self.res_d)
                     self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
