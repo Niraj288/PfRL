@@ -177,7 +177,7 @@ HIDDEN_SIZE = eval(params['HIDDEN_SIZE'])#256
 #env = make_env(DEFAULT_ENV_NAME)
 
 net = DQN(env.obs_size, HIDDEN_SIZE, env.n_actions).to(device)
-#net.load_state_dict(torch.load("models/" +DEFAULT_ENV_NAME + "-best.dat", map_location=lambda storage, loc: storage))
+net.load_state_dict(torch.load("models/" +DEFAULT_ENV_NAME + "-best.dat", map_location=lambda storage, loc: storage))
 tgt_net = DQN(env.obs_size, HIDDEN_SIZE, env.n_actions).to(device)
 print(net)
 
@@ -216,7 +216,10 @@ while True:
             torch.save(net.state_dict(),"models/" + DEFAULT_ENV_NAME + "-best.dat")
             if best_mean_reward is not None:
                 print("Best mean reward updated %.3f -> %.3f, model saved" % (best_mean_reward, mean_reward))
-            best_mean_reward = mean_reward
+                best_mean_reward = mean_reward
+            else:
+                best_mean_reward = -999999999
+            
         if mean_reward > MEAN_REWARD_BOUND:
             print("Solved in %d frames!" % frame_idx)
             break
