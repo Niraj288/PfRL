@@ -281,15 +281,15 @@ class environ_grid:
 
                 # last n coordinates of residues
                 n = self.res_track
-                n_tem = np.zeros(n*4)
+                n_tem = np.array([])
                 
                 for i in range (n):
                         if cur_res-i-1 < 0:
-                                l = np.zeros(4)
+                                l = np.zeros(self.nres)
                         else:
-                                l = [self.res_arrs[self.current_index][cur_res-i-1]]+list(self.current_status[-1 -i-1])
-                        for j in range (4):
-                                n_tem[i*4+j] = l[j]
+                                #l = [self.res_arrs[self.current_index][cur_res-i-1]]+list(self.current_status[-1 -i-1])
+                                l = self.ohe[self.res_arrs[self.current_index][cur_res-i-1]-1]
+                        n_tem = np.concatenate((n_tem, l))
                 lis = np.concatenate((lis,n_tem))
                 return np.array(np.concatenate((lis,t)), dtype = 'float').flatten()
 
@@ -308,7 +308,7 @@ class environ_grid:
             track = 1
             res = 0.0
             bref = self.bcount
-            gamma = 0.95
+            gamma = 0.2
             if self.bcount == -1:
                 bref = len(self.current_status) - 1
             for i in range (bref):
