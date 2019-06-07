@@ -291,6 +291,19 @@ class environ_grid:
                                 l = self.ohe[self.res_arrs[self.current_index][cur_res-i-1]-1]
                         n_tem = np.concatenate((n_tem, l))
                 lis = np.concatenate((lis,n_tem))
+
+                #last n distances
+                n_tem = np.array([])
+                
+                for i in range (n):
+                        if cur_res-i-1 < 0:
+                                l = [0.0]
+                        else:
+                                #l = [self.res_arrs[self.current_index][cur_res-i-1]]+list(self.current_status[-1 -i-1])
+                                l = [self.distance(self.current_status[cur_res],self.current_status[cur_res-i-1])]
+                        n_tem = np.concatenate((n_tem, l))
+                lis = np.concatenate((lis,n_tem))
+
                 return np.array(np.concatenate((lis,t)), dtype = 'float').flatten()
 
 

@@ -177,7 +177,7 @@ HIDDEN_SIZE = eval(params['HIDDEN_SIZE'])#256
 #env = make_env(DEFAULT_ENV_NAME)
 
 net = DQN(env.obs_size, HIDDEN_SIZE, env.n_actions).to(device)
-net.load_state_dict(torch.load("models/" +DEFAULT_ENV_NAME + "-best.dat", map_location=lambda storage, loc: storage))
+#net.load_state_dict(torch.load("models/" +DEFAULT_ENV_NAME + "-best.dat", map_location=lambda storage, loc: storage))
 tgt_net = DQN(env.obs_size, HIDDEN_SIZE, env.n_actions).to(device)
 print(net)
 
