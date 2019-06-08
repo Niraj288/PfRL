@@ -22,6 +22,27 @@ class environ_grid:
                 self.RENDER = RENDER
                 self.SYNC_TARGET_FRAMES = 100
 
+                self.res_data = {'ALA' : [1,1,1,1,3,2,4],
+                             'ARG' : [3,4,5,5,1,1,1],
+                             'ASN' : [3,2,7,2,3,1,3],
+                             'ASP' : [3,2,6,6,2,1,2],
+                             'CYS' : [1,2,3,3,3,2,4],
+                             'GLN' : [3,3,7,2,3,1,3],
+                             'GLU' : [3,3,6,6,2,1,2],
+                             'GLY' : [2,1,1,11,3,2,4],
+                             'HIS' : [2,3,5,5,1,1,3],
+                             'ILE' : [1,4,1,1,3,2,4],
+                             'LEU' : [1,4,1,1,3,2,4],
+                             'LYS' : [3,4,5,5,1,1,1],
+                             'MET' : [1,4,3,3,3,1,4],
+                             'PHE' : [1,5,2,7,3,1,4],
+                             'PRO' : [2,2,1,10,3,1,4],
+                             'SER' : [2,1,4,4,3,2,3],
+                             'THR' : [2,2,4,4,3,2,3],
+                             'TRP' : [1,5,2,8,3,1,1],
+                             'TYR' : [2,5,2,9,3,2,3],
+                             'VAL' : [1,3,1,1,3,1,4]}
+
                 # how much to look in future
                 self.fcounts = fcounts
 
@@ -88,9 +109,15 @@ class environ_grid:
                 l = self.nres
                 ar = np.zeros(l)
                 ohe = {}
+                tem_d = {}
+                for i in self.res_d:
+                    tem_d[self.res_d[i]] = i
                 for i in range (l):
-                        ohe[i] = np.copy(ar)
-                        ohe[i][i] = 1.0
+                        #ohe[i] = np.copy(ar)
+                        #ohe[i][i] = 1.0
+                        ohe[i] = [i+1] # modified here for single number
+                        res_dat = self.res_data[tem_d[i+1]]
+                        ohe[i] = np.concatenate((ohe[i], res_dat))
                 return ohe
 
         def make_input_sequence(self, f, name):
@@ -268,7 +295,7 @@ class environ_grid:
                 # make ohe for all future res and stack
                 for i in range (cur_res + 1 ,cur_res + 1 + self.fcounts):
                     if i >= len(self.fcords[self.current_index]) or i < 0:
-                        lis = np.concatenate((lis, np.zeros(self.nres)))
+                        lis = np.concatenate((lis, np.zeros(len(self.ohe[0]))))
                     else:
                         #print (len(self.fcords[self.current_index]), len(self.res_arrs[self.current_index]), i, self.pdb_files[self.current_index])#print (self.res_arrs[self.current_index])
                         lis = np.concatenate((lis, self.ohe[self.res_arrs[self.current_index][i]-1]))
@@ -285,7 +312,7 @@ class environ_grid:
                 
                 for i in range (n):
                         if cur_res-i-1 < 0:
-                                l = np.zeros(self.nres)
+                                l = np.zeros(len(self.ohe[0]))
                         else:
                                 #l = [self.res_arrs[self.current_index][cur_res-i-1]]+list(self.current_status[-1 -i-1])
                                 l = self.ohe[self.res_arrs[self.current_index][cur_res-i-1]-1]
@@ -321,7 +348,7 @@ class environ_grid:
             track = 1
             res = 0.0
             bref = self.bcount
-            gamma = 0.2
+            gamma = 1.0
             if self.bcount == -1:
                 bref = len(self.current_status) - 1
             for i in range (bref):
