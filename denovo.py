@@ -354,6 +354,59 @@ class environ_grid:
                 #print (3,lis.shape)
                 return np.array(np.concatenate((lis,t)), dtype = 'float').flatten()
 
+        def round_sig(self, x, sig=5):
+            if x == 0.0:
+                return 0.0
+            return round(x, sig-int(floor(log10(abs(x))))-1)
+
+        def angle(self, a, b, c):
+            a = np.array(a)
+            b = np.array(b)
+            c = np.array(c)
+
+            ba = a - b
+            bc = c - b
+
+            cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+            
+            if self.round_sig(cosine_angle, 6) in [-1.0, 1.0]:
+                cosine_angle = 0.99 * np.sign(cosine_angle)
+
+            #print (ba, bc, cosine_angle)
+
+
+
+            return np.degrees(np.arccos(cosine_angle))
+
+        def dihedral(self, p0, p1, p2, p3):
+            p0 = np.array(p0)
+            p1 = np.array(p1)
+            p2 = np.array(p2)
+            p3 = np.array(p3)
+
+            b0 = -1.0*(p1 - p0)
+            b1 = p2 - p1
+            b2 = p3 - p2
+
+            # normalize b1 so that it does not influence magnitude of vector
+            # rejections that come next
+            b1 /= np.linalg.norm(b1)
+
+            # vector rejections
+            # v = projection of b0 onto plane perpendicular to b1
+            #   = b0 minus component that aligns with b1
+            # w = projection of b2 onto plane perpendicular to b1
+            #   = b2 minus component that aligns with b1
+            v = b0 - np.dot(b0, b1)*b1
+            w = b2 - np.dot(b2, b1)*b1
+
+            # angle between v and w in a plane is the torsion angle
+            # v and w may not be normalized but that's fine since tan is y/x
+            x = np.dot(v, w)
+            y = np.dot(np.cross(b1, v), w)
+            return np.degrees(np.arctan2(y, x))
+
+
 
         def get_reward(self):
 
@@ -372,9 +425,12 @@ class environ_grid:
             gamma = 0.8
             if self.bcount == -1:
                 bref = len(self.current_status) - 1
+            
             for i in range (bref):
                 if track >= len(self.current_status):
                     break
+
+                # distances
                 d1 = self.distance(self.current_status[-1], self.current_status[-1-track])
                 d2 = self.distance(self.fcords[self.current_index][len(self.current_status) - 1], self.fcords[self.current_index][len(self.current_status) - 1 - track])
                 #print (d1, d2, i)
@@ -382,7 +438,34 @@ class environ_grid:
                     res += gamma**i*(d1-d2)**2
                 else:
                     res += (d1-d2)**2
+
                 track += 1
+            
+            #print (res, 'dist')
+
+            #angle
+            if len(self.current_status) > 3:
+                res += abs(self.angle(self.current_status[-1], self.current_status[-2], 
+                        self.current_status[-3]) - self.angle(self.fcords[self.current_index][len(self.current_status) - 1],
+                        self.fcords[self.current_index][len(self.current_status) - 2],
+                        self.fcords[self.current_index][len(self.current_status) - 3]))
+
+            #print (res, 'angle')
+            if np.isnan(res):
+                print (self.current_status)
+                stop()
+
+            #dihedrals
+            if len(self.current_status) > 4:
+                res += abs(self.dihedral(self.current_status[-1], self.current_status[-2], 
+                        self.current_status[-3], self.current_status[-4]) - self.dihedral(self.fcords[self.current_index][len(self.current_status) - 1],
+                        self.fcords[self.current_index][len(self.current_status) - 2],
+                        self.fcords[self.current_index][len(self.current_status) - 3],
+                        self.fcords[self.current_index][len(self.current_status) - 4]))
+
+            #print (res, 'dih')
+
+                
             '''   
             if res < 1.0:
                 res = 1.0
