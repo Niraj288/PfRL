@@ -68,10 +68,11 @@ state = env.reset()
 total_reward = 0.0
 c = collections.Counter()
 RENDER = 1
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+#import matplotlib.pyplot as plt
+#from mpl_toolkits.mplot3d import Axes3D
 
 test_net = DQN(env.obs_size, HIDDEN_SIZE, env.n_actions)
+print (test_net)
 test_net.load_state_dict(torch.load("models/" +DEFAULT_ENV_NAME + "-best.dat", map_location=lambda storage, loc: storage))
 
 

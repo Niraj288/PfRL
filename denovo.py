@@ -80,7 +80,7 @@ class environ_grid:
                                  [1.0,-1.0,1.0], [-1.0,1.0,1.0], [-1.0,-1.0,-1.0], [-1.0,-1.0,1.0],
                                  [-1.0,1.0,-1.0], [1.0,-1.0,-1.0]])
 
-                if 0:#self.test:
+                if self.test:
                     self.res_d = np.load('models/res_d.npy').item()
                     chk = len(self.res_d)
                     self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
@@ -90,6 +90,11 @@ class environ_grid:
                     self.res_d = {}
 
                     self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
+                    if None in self.res_arrs:
+                        for i in range (len(self.res_arrs)):
+                            if self.res_arrs[i] is None:
+                                print (self.pdb_files[i])
+                        raise Exception('Unknown residue detected !!')
                 self.nres = len(self.res_d)#max([max(i) for i in self.res_arrs])
                 #print (self.nres)
                 self.ohe = self.make_ohe()
@@ -133,6 +138,8 @@ class environ_grid:
                                         s=line.strip().split()[-1]
                                         #d[len(rid)+1]=rt+_0
                                         if rt+_0 not in rid:
+                                            if rt not in self.res_data:
+                                                return None
                                             d[len(rid)+1]=rt
                                             rid[rt+_0] = 1
                         #print (name, d)
@@ -147,6 +154,8 @@ class environ_grid:
                 file.close()
 
                 seq = get_sequence(lines)
+                if not seq:
+                    return None
                 
                 for i in range (len(seq)):
                         if seq[i] in self.res_d:
@@ -163,9 +172,16 @@ class environ_grid:
                 self.fcords = self.make_fcords()	
                 for i in range (len(self.pdb_files)):
                         if len(self.fcords[i]) != len(self.res_arrs[i]):
-                                raise Exception('Multiple chains detected in protein : '+self.pdb_files[i])	
+                                os.system('mv proteins/'+self.pdb_files[i]+' errors/')
+                                print ('Multiple chains detected in protein : '+self.pdb_files[i])
+                                #raise Exception('Multiple chains detected in protein : '+self.pdb_files[i])	
                 if self.res_track == -1:
-                    self.res_track = max([len(i) for i in self.res_arrs])
+                    if self.test:
+                        dt = np.load('models/properties.npy').item()
+                        self.res_track = dt['res_track']
+                    else:
+                        self.res_track = max([len(i) for i in self.res_arrs])
+                        np.save('models/properties.npy',{'res_track':self.res_track})
                 state = self.reset()
                 l = state.shape[0]
                 self.obs_size = l
@@ -196,7 +212,11 @@ class environ_grid:
                                         if line.split()[0] in ['ATOM']:
                                             #print line
                                             id,at,rt,_,_0,x,y,z=line.strip().split()[1:9]
+                                            #print (line[28:56])
+                                            x, y, z = line[28:38].strip(), line[38:46].strip(), line[46:54]
+                                            #print (x,y,z)
                                             s=line.strip().split()[-1]
+                                            #print (line.strip())
                                             x, y, z = list(map(float, [x, y, z]))
                                             if is_backbone(s, at):
                                                             if rt+_0 not in d:
@@ -305,11 +325,12 @@ class environ_grid:
                 if len(self.current_status) > 1:
                         l_temp = np.array(self.current_status[-1]) - np.array(self.current_status[-2])
                 lis = np.concatenate((np.array(l_temp), lis))
-
-                # last n coordinates of residues
+                #print (1,lis.shape)
+                #print (len(self.ohe[0]))
+                # last n sequence of residues
                 n = self.res_track
                 n_tem = np.array([])
-                
+                #print ('n', n) 
                 for i in range (n):
                         if cur_res-i-1 < 0:
                                 l = np.zeros(len(self.ohe[0]))
@@ -318,7 +339,7 @@ class environ_grid:
                                 l = self.ohe[self.res_arrs[self.current_index][cur_res-i-1]-1]
                         n_tem = np.concatenate((n_tem, l))
                 lis = np.concatenate((lis,n_tem))
-
+                #print (2,lis.shape)
                 #last n distances
                 n_tem = np.array([])
                 
@@ -330,7 +351,7 @@ class environ_grid:
                                 l = [self.distance(self.current_status[cur_res],self.current_status[cur_res-i-1])]
                         n_tem = np.concatenate((n_tem, l))
                 lis = np.concatenate((lis,n_tem))
-
+                #print (3,lis.shape)
                 return np.array(np.concatenate((lis,t)), dtype = 'float').flatten()
 
 
@@ -342,20 +363,25 @@ class environ_grid:
             # bcount is how much to go backward
             #print (self.current_status)
 
-            if self.bcount != -1 and len(self.current_status) < self.bcount + 1:
+            if 0:#self.bcount != -1 and len(self.current_status) < self.bcount + 1:
                 return -0.001#None
 
             track = 1
             res = 0.0
             bref = self.bcount
-            gamma = 1.0
+            gamma = 0.8
             if self.bcount == -1:
                 bref = len(self.current_status) - 1
             for i in range (bref):
+                if track >= len(self.current_status):
+                    break
                 d1 = self.distance(self.current_status[-1], self.current_status[-1-track])
                 d2 = self.distance(self.fcords[self.current_index][len(self.current_status) - 1], self.fcords[self.current_index][len(self.current_status) - 1 - track])
                 #print (d1, d2, i)
-                res += gamma**2*(d1-d2)**2
+                if 1:#i > self.bcount-1:
+                    res += gamma**i*(d1-d2)**2
+                else:
+                    res += (d1-d2)**2
                 track += 1
             '''   
             if res < 1.0:
@@ -385,7 +411,7 @@ class environ_grid:
 
                 if list(new_place) in self.current_status:
                         #print ('penalty')
-                        penalty = -100.0
+                        penalty = -1000.0
 
                 if penalty == 0.0:
                     self.current_status.append(list(new_place))
