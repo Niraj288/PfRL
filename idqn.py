@@ -190,7 +190,7 @@ total_rewards = []
 frame_idx = 0
 ts_frame = 0
 ts = time.time()
-best_mean_reward = None
+best_mean_reward = -999999999
 
 
 
@@ -212,13 +212,11 @@ while True:
             speed
         ))
         
-        if best_mean_reward is None or best_mean_reward < mean_reward or frame_idx % 100000 == 0:
+        if best_mean_reward < mean_reward or frame_idx % 100000 == 0:
             torch.save(net.state_dict(),"models/" + DEFAULT_ENV_NAME + "-best.dat")
-            if best_mean_reward is not None:
+            if best_mean_reward is not None and best_mean_reward < mean_reward:
                 print("Best mean reward updated %.3f -> %.3f, model saved" % (best_mean_reward, mean_reward))
                 best_mean_reward = mean_reward
-            else:
-                best_mean_reward = -999999999
             
         if mean_reward > MEAN_REWARD_BOUND:
             print("Solved in %d frames!" % frame_idx)
