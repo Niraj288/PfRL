@@ -359,6 +359,12 @@ class environ_grid:
                 return 0.0
             return round(x, sig-int(floor(log10(abs(x))))-1)
 
+        def angle_to(self, p1, p2, rotation=0, clockwise=False):
+            angle = np.degrees(math.atan2(p2[1] - p1[1], p2[0] - p1[0])) - rotation
+            if not clockwise:
+                angle = -angle
+            return angle % 360
+
         def angle(self, a, b, c):
             a = np.array(a)
             b = np.array(b)
@@ -366,6 +372,10 @@ class environ_grid:
 
             ba = a - b
             bc = c - b
+
+            angl = self.angle_to(ba, bc)
+
+            return angl
 
             cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
             
@@ -422,7 +432,7 @@ class environ_grid:
             track = 1
             res = 0.0
             bref = self.bcount
-            gamma = 0.8
+            gamma = 0.99
             if self.bcount == -1:
                 bref = len(self.current_status) - 1
             
@@ -442,7 +452,9 @@ class environ_grid:
                 track += 1
             
             #print (res, 'dist')
-
+            
+            
+            '''
             #angle
             if len(self.current_status) > 3:
                 res += abs(self.angle(self.current_status[-1], self.current_status[-2], 
@@ -454,18 +466,20 @@ class environ_grid:
             if np.isnan(res):
                 print (self.current_status)
                 stop()
+            '''
+            '''
 
             #dihedrals
             if len(self.current_status) > 4:
-                res += abs(self.dihedral(self.current_status[-1], self.current_status[-2], 
+                res += 0.01*abs(self.dihedral(self.current_status[-1], self.current_status[-2], 
                         self.current_status[-3], self.current_status[-4]) - self.dihedral(self.fcords[self.current_index][len(self.current_status) - 1],
                         self.fcords[self.current_index][len(self.current_status) - 2],
                         self.fcords[self.current_index][len(self.current_status) - 3],
                         self.fcords[self.current_index][len(self.current_status) - 4]))
 
             #print (res, 'dih')
-
-                
+            
+            '''   
             '''   
             if res < 1.0:
                 res = 1.0
