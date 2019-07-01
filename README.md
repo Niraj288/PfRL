@@ -4,13 +4,19 @@ Protein folding via Reinforcement Learning (PfRL)
 
 # PfRL with Improved dqn
 
-Example :
+Example to train:
 
-Make sure you have models and proteins folder in the current directory
+Download protein databse from 'https://smu.box.com/s/0395yjihdwm1p0he09cqm5mahg8z9ah9'
 
-Train : python idqn.py path_to_inp
+Extract data and put the proteins folder in your working directory
 
-Test : python test_model.py path_to_inp path_to_pdb_file
+Make directory models
+
+make input file (An example is given as inp)
+
+Train : python path_to_PfRL/idqn.py path_to_inp
+
+Test : python path_to_PfRL/test_model.py path_to_inp path_to_pdb_file
 
 ## Requirements
 
