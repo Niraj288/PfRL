@@ -454,7 +454,7 @@ class environ_grid:
             #print (res, 'dist')
             
             
-            '''
+            
             #angle
             if len(self.current_status) > 3:
                 res += abs(self.angle(self.current_status[-1], self.current_status[-2], 
@@ -466,7 +466,7 @@ class environ_grid:
             if np.isnan(res):
                 print (self.current_status)
                 stop()
-            '''
+            
             '''
 
             #dihedrals
