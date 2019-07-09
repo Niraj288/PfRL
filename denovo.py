@@ -80,6 +80,9 @@ class environ_grid:
                                  [1.0,-1.0,1.0], [-1.0,1.0,1.0], [-1.0,-1.0,-1.0], [-1.0,-1.0,1.0],
                                  [-1.0,1.0,-1.0], [1.0,-1.0,-1.0]])
 
+                #self.direcn = np.array([[1.0,0.0,0.0], [-1.0,0.0,0.0], [0.0,1.0,0.0], [0.0,-1.0,0.0],
+                #                 [0.0,0.0,1.0], [0.0,0.0,-1.0]])
+
                 if self.test:
                     self.res_d = np.load('models/res_d.npy').item()
                     chk = len(self.res_d)
@@ -218,7 +221,8 @@ class environ_grid:
                                             s=line.strip().split()[-1]
                                             #print (line.strip())
                                             x, y, z = list(map(float, [x, y, z]))
-                                            if is_backbone(s, at):
+                                            if at == 'CA':# is_backbone(s, at):
+                                                            #print (at)
                                                             if rt+_0 not in d:
                                                                         l[len(d)] = rt+_0
                                                                         d[rt+_0]=[[x, y, z]]
@@ -583,7 +587,11 @@ class environ_grid:
                     new_cord = dis[i]*v + cords[i]
                     cords.append(new_cord)
 
-                r = animate.render(np.amax(cords)/2)
+                r = animate.render(abs(np.amax(cords)-np.amin(cords))/2)
+
+                print (np.array(cords))
+
+                np.save('map_grid.npy', {'gen':cords, 'org':self.ref_coord})
 
                 r.plot_final(cords, self.ref_coord)
 
