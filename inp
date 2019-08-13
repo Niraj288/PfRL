@@ -28,7 +28,7 @@ device cpu
 
 HIDDEN_SIZE 256
 
-# how much feature residues to consider
+# how much future residues to consider
 FCOUNTS 10
 
 # how much to look backward for reward
