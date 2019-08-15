@@ -29,7 +29,7 @@ device cpu
 HIDDEN_SIZE 256
 
 # how much future residues to consider
-FCOUNTS 10
+FCOUNTS 30
 
 # how much to look backward for reward
 # -1 denotes all
