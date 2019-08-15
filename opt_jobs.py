@@ -9,18 +9,22 @@ class Work:
 		self.name = name
 
 	def gen_CA_pdb(self):
-		st = ''
+		st = 'MODEL        0\n'
 		
 		for i in range (len(self.seq)):
 			l = ['ATOM', str(i+1), 'CA', self.seq[i], 'A', str(i+1), self.grid[i][0], self.grid[i][1], self.grid[i][2], '1.00', '0.00', 'C']
-			print ("{:>4}{:>7}{:>5}{:>4}{:>2}{:>4}{:>12}{:>8}{:>8}{:>6}{:>6}{:>12}".format(*l))
-			st += "{:>4}{:>7}{:>5}{:>4}{:>2}{:>4}{:>12}{:>8}{:>8}{:>6}{:>6}{:>12}".format(*l)+'\n'
+			#print ("{:>4}{:>7}{:>2} {:>5}{:>2}{:>4}{:>12}{:>8}{:>8}{:>6}{:>6}{:>12}".format(*l))
+			st += "{:>4}{:>7}{:>4} {:>4}{:>2}{:>4}{:>12}{:>8}{:>8}{:>6}{:>6}{:>12}".format(*l)+'\n'
 
-		st += 'TER\nEND'
+		st += 'ENDMDL'
 
 		g = open(self.name+'_CA.pdb','w')
 		g.write(st)
 		g.close()
+
+		os.system('java apps.BBQ -ip='+self.name+'_CA.pdb')
+
+		os.system('/users/nirajv/scwrl4/Scwrl4 -i '+self.name+'_CA.pdb'+ ' -o '+self.name+'_gen.pdb')
 
 
 
