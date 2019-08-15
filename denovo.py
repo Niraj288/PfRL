@@ -5,8 +5,10 @@ import numpy as np
 #import scipy.spatial as spatial
 #import atom_data as ad
 import math 
+import copy
 from math import log10, floor
 import animate
+from opt_jobs import Work
 
 
 class environ_grid:
@@ -46,6 +48,27 @@ class environ_grid:
                 # how much to look in future
                 self.fcounts = fcounts
 
+                self.res_d = {'ALA' : 1,
+                             'ARG' : 2,
+                             'ASN' : 3,
+                             'ASP' : 4,
+                             'CYS' : 5,
+                             'GLN' : 6,
+                             'GLU' : 7,
+                             'GLY' : 8,
+                             'HIS' : 9,
+                             'ILE' : 10,
+                             'LEU' : 11,
+                             'LYS' : 12,
+                             'MET' : 13,
+                             'PHE' : 14,
+                             'PRO' : 15,
+                             'SER' : 16,
+                             'THR' : 17,
+                             'TRP' : 18,
+                             'TYR' : 19,
+                             'VAL' : 20}
+
                 # bcount is how much to go backward for reward
                 self.bcount = bcount #5
 
@@ -84,13 +107,13 @@ class environ_grid:
                 #                 [0.0,0.0,1.0], [0.0,0.0,-1.0]])
 
                 if self.test:
-                    self.res_d = np.load('models/res_d.npy').item()
+                    #self.res_d = np.load('models/res_d.npy').item()
                     chk = len(self.res_d)
                     self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
                     if chk != len(self.res_d):
                         raise Exception('Unknown residue detected !!')
                 else:
-                    self.res_d = {}
+                    #self.res_d = {}
 
                     self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
                     if None in self.res_arrs:
@@ -105,8 +128,8 @@ class environ_grid:
                 self.current_status = [[0.0,0.0,0.0]]
 
                 # save res_dictionary in the models
-                if not self.test:
-                    np.save('models/res_d.npy', self.res_d)
+                #if not self.test:
+                #    np.save('models/res_d.npy', self.res_d)
 
                 
                 #print ('i', self.igrid)
@@ -132,6 +155,7 @@ class environ_grid:
 
                 def get_sequence(lines):
                         d,rid={},{}
+                        arr = []
                         for line in lines:
                                 if "TER" in line.split()[0]:
                                         break
@@ -147,6 +171,7 @@ class environ_grid:
                                             rid[rt+_0] = 1
                         #print (name, d)
                         arr = [d[i] for i in range (1,len(d)+1)]
+                        #print (arr)
                         return arr
 
                 if self.test:
@@ -157,6 +182,8 @@ class environ_grid:
                 file.close()
 
                 seq = get_sequence(lines)
+                if self.test:
+                    self.seq = copy.copy(seq) 
                 if not seq:
                     return None
                 
@@ -323,7 +350,9 @@ class environ_grid:
                     else:
                         #print (len(self.fcords[self.current_index]), len(self.res_arrs[self.current_index]), i, self.pdb_files[self.current_index])#print (self.res_arrs[self.current_index])
                         lis = np.concatenate((lis, self.ohe[self.res_arrs[self.current_index][i]-1]))
-                #print (np.array(np.concatenate((lis,t)), dtype = 'float').shape)
+                
+                #print (np.array(np.concatenate((lis,t)), dtype = 'float'))
+                
                 # current vector
                 l_temp = np.zeros(3)
                 if len(self.current_status) > 1:
@@ -354,11 +383,12 @@ class environ_grid:
                                 #l = [self.res_arrs[self.current_index][cur_res-i-1]]+list(self.current_status[-1 -i-1])
                                 l = [self.distance(self.current_status[cur_res],self.current_status[cur_res-i-1])]
                         n_tem = np.concatenate((n_tem, l))
+
                 lis = np.concatenate((lis,n_tem))
-                #print (3,lis.shape)
+                #print (lis)
                 return np.array(np.concatenate((lis,t)), dtype = 'float').flatten()
 
-        def round_sig(self, x, sig=5):
+        def round_sig(self, x, sig=3):
             if x == 0.0:
                 return 0.0
             return round(x, sig-int(floor(log10(abs(x))))-1)
@@ -589,11 +619,20 @@ class environ_grid:
 
                 r = animate.render(abs(np.amax(cords)-np.amin(cords))/2)
 
-                print (np.array(cords))
-
                 np.save('map_grid.npy', {'gen':cords, 'org':self.ref_coord})
 
                 r.plot_final(cords, self.ref_coord)
+
+                #print (np.array(cords))
+
+                for i in range (len(cords)):
+                    cords[i] = list(map(self.round_sig, cords[i]))
+
+                #seq = self.res_arrs[self.current_index]
+
+                w = Work(self.seq, cords, self.name)
+
+                w.gen_CA_pdb()
 
 
         def __str__(self):
