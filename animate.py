@@ -33,7 +33,7 @@ class render:
                         pass
                         #plt.pause(5)
                 else:
-                        plt.pause(0.05)
+                        plt.pause(0.005)
 
         def plot_final(self, lis1, lis2): # lis1 is test, lis2 is actual protein
                 if self.lines1:
