@@ -99,9 +99,9 @@ class environ_grid:
                 #self.truncate_pdb()
 
                 self.direcn = np.array([[1.0,0.0,0.0], [-1.0,0.0,0.0], [0.0,1.0,0.0], [0.0,-1.0,0.0],
-                                 [0.0,0.0,1.0], [0.0,0.0,-1.0], [1.0,1.0,1.0], [1.0,1.0,-1.0],
-                                 [1.0,-1.0,1.0], [-1.0,1.0,1.0], [-1.0,-1.0,-1.0], [-1.0,-1.0,1.0],
-                                 [-1.0,1.0,-1.0], [1.0,-1.0,-1.0]])
+                                 [0.0,0.0,1.0], [0.0,0.0,-1.0], [0.57,0.57,0.57], [0.57,0.57,-0.57],
+                                 [0.57,-0.57,0.57], [-0.57,0.57,0.57], [-0.57,-0.57,-0.57], [-0.57,-0.57,0.57],
+                                 [-0.57,0.57,-0.57], [0.57,-0.57,-0.57]])
 
                 #self.direcn = np.array([[1.0,0.0,0.0], [-1.0,0.0,0.0], [0.0,1.0,0.0], [0.0,-1.0,0.0],
                 #                 [0.0,0.0,1.0], [0.0,0.0,-1.0]])
@@ -248,6 +248,9 @@ class environ_grid:
                                             s=line.strip().split()[-1]
                                             #print (line.strip())
                                             x, y, z = list(map(float, [x, y, z]))
+                                            #print (x,y,z)
+                                            x, y, z = list(map(round, [x, y, z]))
+                                            #print (x,y,z)
                                             if at == 'CA':# is_backbone(s, at):
                                                             #print (at)
                                                             if rt+_0 not in d:
@@ -261,6 +264,7 @@ class environ_grid:
 
 
                         temp = self.direcn[np.argmin(np.sum(np.abs(np.array(vec)-self.direcn), axis=1))]
+                        temp = temp/np.linalg.norm(temp)
                         return list(cur+temp)
 
 						
@@ -388,7 +392,7 @@ class environ_grid:
                 #print (lis)
                 return np.array(np.concatenate((lis,t)), dtype = 'float').flatten()
 
-        def round_sig(self, x, sig=3):
+        def round_sig(self, x, sig=1):
             if x == 0.0:
                 return 0.0
             return round(x, sig-int(floor(log10(abs(x))))-1)
@@ -479,7 +483,7 @@ class environ_grid:
                 d2 = self.distance(self.fcords[self.current_index][len(self.current_status) - 1], self.fcords[self.current_index][len(self.current_status) - 1 - track])
                 #print (d1, d2, i)
                 if 1:#i > self.bcount-1:
-                    res += gamma**i*(d1-d2)**2
+                    res += (gamma**i)*(d1-d2)**2
                 else:
                     res += (d1-d2)**2
 
@@ -536,7 +540,7 @@ class environ_grid:
                 # last place of residue in grid
                 cu_r = self.current_status[-1]
                 #print (ac, cu_r )
-                new_place = cu_r+self.direcn[ac]
+                new_place = cu_r+self.direcn[ac]/np.linalg.norm(self.direcn[ac])
                 #print (list(new_place) == self.current_status[0])
                 penalty = 0.0
 
@@ -561,13 +565,15 @@ class environ_grid:
 
                 is_done = False
 
+                #print (len(self.current_status), len(self.fcords[self.current_index]))
+
                 if len(self.current_status) == len(self.fcords[self.current_index]):
                         #print ('done')
                         is_done = True
                         if self.test and self.RENDER:
                             #pass
                             self.anim.plot_final(self.current_status, self.fcords[self.current_index])
-                            self.map_pdb()
+                            #self.map_pdb()
                 self.nframes += 1
 
                 return new_state, reward, is_done, self.nframes
@@ -603,6 +609,7 @@ class environ_grid:
 
                 dis = []
                 for i in range (1, len(self.current_status)):
+                    #dis.append(3.785)
                     dis.append(self.distance(self.ref_coord[i], self.ref_coord[i-1]))
 
                 vec = []
@@ -623,14 +630,18 @@ class environ_grid:
 
                 r.plot_final(cords, self.ref_coord)
 
+                cords = self.ref_coord
+
+                #r.plot_final(self.fcords[self.current_index], self.ref_coord)
+
                 #print (np.array(cords))
 
                 for i in range (len(cords)):
-                    cords[i] = list(map(self.round_sig, cords[i]))
+                    cords[i] = list(map(self.round_sig, cords[i], [2]*len(cords)))
 
                 #seq = self.res_arrs[self.current_index]
 
-                w = Work(self.seq, cords, self.name)
+                w = Work(self.seq, cords, self.pdb_files[self.current_index].split('/')[-1].split('.')[0])
 
                 w.gen_CA_pdb()
 

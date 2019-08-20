@@ -90,4 +90,7 @@ while True:
 print("Total reward: %.2f" % total_reward)
 print("Action counts:", c)
 
+if int(params['doSimulation']):
+    env.map_pdb()
+
 
