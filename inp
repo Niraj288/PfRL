@@ -1,5 +1,7 @@
 DEFAULT_ENV_NAME PfRL
 
+doSimulation 0
+
 RENDER 0
 
 MEAN_REWARD_BOUND -3.0
