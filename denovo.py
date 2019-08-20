@@ -630,16 +630,18 @@ class environ_grid:
 
                 r.plot_final(cords, self.ref_coord)
 
+                cords = self.ref_coord
+
                 #r.plot_final(self.fcords[self.current_index], self.ref_coord)
 
                 #print (np.array(cords))
 
                 for i in range (len(cords)):
-                    cords[i] = list(map(self.round_sig, cords[i]))
+                    cords[i] = list(map(self.round_sig, cords[i], [2]*len(cords)))
 
                 #seq = self.res_arrs[self.current_index]
 
-                w = Work(self.seq, cords, self.name)
+                w = Work(self.seq, cords, self.pdb_files[self.current_index].split('/')[-1].split('.')[0])
 
                 w.gen_CA_pdb()
 
