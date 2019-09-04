@@ -10,7 +10,7 @@ Download protein databse from 'https://smu.box.com/s/0395yjihdwm1p0he09cqm5mahg8
 
 Extract data and put the proteins folder in your working directory
 
-Make directory models
+Make directory models, errors
 
 make input file (An example is given as inp)
 
