@@ -1,6 +1,6 @@
 # PfRL
 
-Protein folding via Reinforcement Learning (PfRL)
+Protein folding via Reinforcement Learning (PfRL) This code is a naive implementation of PfRL. The actual code is private.
 
 # PfRL with Improved dqn
 
