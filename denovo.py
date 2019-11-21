@@ -120,6 +120,7 @@ class environ_grid:
                         for i in range (len(self.res_arrs)):
                             if self.res_arrs[i] is None:
                                 print (self.pdb_files[i])
+                                os.system('mv proteins/'+self.pdb_files[i]+' ../errors')
                         raise Exception('Unknown residue detected !!')
                 self.nres = len(self.res_d)#max([max(i) for i in self.res_arrs])
                 #print (self.nres)
@@ -184,7 +185,7 @@ class environ_grid:
                 seq = get_sequence(lines)
                 if self.test:
                     self.seq = copy.copy(seq) 
-                if not seq:
+                if not seq or len(seq) < 10:
                     return None
                 
                 for i in range (len(seq)):
@@ -207,6 +208,7 @@ class environ_grid:
                                 #raise Exception('Multiple chains detected in protein : '+self.pdb_files[i])	
                 if self.res_track == -1:
                     if self.test:
+                        #print ([len(i) for i in self.res_arrs])
                         dt = np.load('models/properties.npy').item()
                         self.res_track = dt['res_track']
                     else:
@@ -249,7 +251,7 @@ class environ_grid:
                                             #print (line.strip())
                                             x, y, z = list(map(float, [x, y, z]))
                                             #print (x,y,z)
-                                            x, y, z = list(map(round, [x, y, z]))
+                                            #x, y, z = list(map(round, [x, y, z]))
                                             #print (x,y,z)
                                             if at == 'CA':# is_backbone(s, at):
                                                             #print (at)
@@ -332,6 +334,7 @@ class environ_grid:
 
         def state(self):
                 cur_res = len(self.current_status)-1
+                #print (self.res_arrs[self.current_index], cur_res, self.pdb_files[self.current_index])
                 lis = self.ohe[self.res_arrs[self.current_index][cur_res] - 1]
                 # Places where next residue cannot move
                 # overlap in 14 directions
@@ -483,7 +486,7 @@ class environ_grid:
                 d2 = self.distance(self.fcords[self.current_index][len(self.current_status) - 1], self.fcords[self.current_index][len(self.current_status) - 1 - track])
                 #print (d1, d2, i)
                 if 1:#i > self.bcount-1:
-                    res += (gamma**i)*(d1-d2)**2
+                    res += (gamma**i)*(d1-d2)**2 # 1 - 1/(10**6 - self.nframes)
                 else:
                     res += (d1-d2)**2
 
@@ -609,8 +612,8 @@ class environ_grid:
 
                 dis = []
                 for i in range (1, len(self.current_status)):
-                    #dis.append(3.785)
-                    dis.append(self.distance(self.ref_coord[i], self.ref_coord[i-1]))
+                    dis.append(3.785)
+                    #dis.append(self.distance(self.ref_coord[i], self.ref_coord[i-1]))
 
                 vec = []
                 for i in range (1, len(self.current_status)):
@@ -624,13 +627,13 @@ class environ_grid:
                     new_cord = dis[i]*v + cords[i]
                     cords.append(new_cord)
 
-                r = animate.render(abs(np.amax(cords)-np.amin(cords))/2)
+                #r = animate.render(abs(np.amax(cords)-np.amin(cords))/2)
 
                 np.save('map_grid.npy', {'gen':cords, 'org':self.ref_coord})
 
-                r.plot_final(cords, self.ref_coord)
+                #r.plot_final(cords, self.ref_coord)
 
-                cords = self.ref_coord
+                #cords = self.ref_coord
 
                 #r.plot_final(self.fcords[self.current_index], self.ref_coord)
 

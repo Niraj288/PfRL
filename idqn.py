@@ -31,6 +31,51 @@ class DQN(nn.Module):
     def forward(self, x):
         return self.net(x)
 
+class DQN(nn.Module):
+    def __init__(self, obs_size, hidden_size, n_actions):
+        super(DQN, self).__init__()
+        def init_weights(m):
+            if type(m) == nn.Linear:
+                    torch.nn.init.xavier_uniform(m.weight)
+                    m.bias.data.fill_(0.0)
+
+        self.net = nn.Sequential(
+            nn.RNN(obs_size, hidden_size, 5),
+            nn.ReLU(),
+            nn.Linear(hidden_size, int(hidden_size/2)),
+            nn.ReLU(),
+            #nn.Linear(int(hidden_size/2), int(hidden_size/4)),
+                #   nn.ReLU(),
+            nn.Linear(int(hidden_size/2), n_actions)
+        )
+        #self.net.apply(init_weights)
+
+    def forward(self, x):
+        return self.net(x)
+
+class DQN(nn.Module):
+    def __init__(self, obs_size, hidden_size, n_actions):
+        super(DQN, self).__init__()
+        self.layer1 = nn.Sequential(
+            nn.Conv1d(obs_size, hidden_size, kernel_size=5, stride=1, padding=2),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2, stride=2))
+        self.layer2 = nn.Sequential(
+            nn.Conv1d(hidden_size, 64, kernel_size=5, stride=1, padding=2),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2, stride=2))
+        self.drop_out = nn.Dropout()
+        self.fc1 = nn.Linear(obs_size * hidden_size * 64, 1000)
+        self.fc2 = nn.Linear(1000, 14)
+    def forward(self, x):
+    	out = self.layer1(x)
+    	out = self.layer2(out)
+    	out = out.reshape(out.size(0), -1)
+    	out = self.drop_out(out)
+    	out = self.fc1(out)
+    	out = self.fc2(out)
+    	return out
+
 class Agent:
     def __init__(self, env, exp_buffer):
         self.env = env
@@ -52,6 +97,7 @@ class Agent:
             # use Net policy
             state_a = np.array([self.state], copy=False)
             state_v = torch.tensor(state_a, dtype = torch.float).to(device)
+            #print (state_v.shape)
             q_vals_v = net(state_v)
             # get idx of best action
             _, act_v = torch.max(q_vals_v, dim=1)
@@ -71,6 +117,29 @@ class Agent:
             done_reward = self.total_reward
             self._reset()
         return done_reward
+
+
+class DQN(nn.Module):
+    def __init__(self, obs_size, hidden_size, n_actions):
+        super(DQN, self).__init__()
+        def init_weights(m):
+            if type(m) == nn.Linear:
+                    torch.nn.init.xavier_uniform(m.weight)
+                    m.bias.data.fill_(0.0)
+
+        self.net = nn.Sequential(
+            nn.Linear(obs_size, n_actions)
+            #nn.ReLU(),
+            #nn.Linear(hidden_size, int(hidden_size/2)),
+            #nn.ReLU(),
+            #nn.Linear(int(hidden_size/2), int(hidden_size/4)),
+                #   nn.ReLU(),
+            #nn.Linear(int(hidden_size/2), n_actions)
+        )
+        #self.net.apply(init_weights)
+
+    def forward(self, x):
+        return self.net(x)
 
 
 def calc_loss(batch, net, tgt_net, device="cpu"):
@@ -179,6 +248,7 @@ HIDDEN_SIZE = eval(params['HIDDEN_SIZE'])#256
 net = DQN(env.obs_size, HIDDEN_SIZE, env.n_actions).to(device)
 #net.load_state_dict(torch.load("models/" +DEFAULT_ENV_NAME + "-best.dat", map_location=lambda storage, loc: storage))
 tgt_net = DQN(env.obs_size, HIDDEN_SIZE, env.n_actions).to(device)
+#tgt_net.load_state_dict(torch.load("models/" +DEFAULT_ENV_NAME + "-best_tar.dat", map_location=lambda storage, loc: storage))
 print(net)
 
 buffer = ExperienceBuffer(REPLAY_SIZE)
@@ -205,7 +275,7 @@ while True:
         speed = (frame_idx - ts_frame) / (time.time() - ts)
         ts_frame = frame_idx
         ts = time.time()
-        mean_reward = np.mean(total_rewards[-100:])
+        mean_reward = np.mean(total_rewards[-1])
         if len(total_rewards)%100 == 0:
             print("%d: done %d games, mean reward %.3f, eps %.2f, speed %.2f f/s" % (
             frame_idx, len(total_rewards), mean_reward, epsilon,
@@ -214,6 +284,7 @@ while True:
         
         if best_mean_reward < mean_reward or frame_idx % 100000 == 0:
             torch.save(net.state_dict(),"models/" + DEFAULT_ENV_NAME + "-best.dat")
+            torch.save(tgt_net.state_dict(),"models/" + DEFAULT_ENV_NAME + "-best_tar.dat")
             if best_mean_reward is not None and best_mean_reward < mean_reward:
                 print("Best mean reward updated %.3f -> %.3f, model saved" % (best_mean_reward, mean_reward))
                 best_mean_reward = mean_reward
