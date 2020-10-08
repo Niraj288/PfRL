@@ -8,7 +8,7 @@ g = open(sys.argv[1])
 lines = g.readlines()
 g.close()
 
-lis = [line.strip() for line in lines if len(line.strip()) > 0] 
+lis = [line.strip().upper() for line in lines if len(line.strip()) > 0] 
 
 pdb = set(lis)
 for pb in d['targets']:
