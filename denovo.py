@@ -110,20 +110,21 @@ class environ_grid:
                     #self.res_d = np.load('models/res_d.npy').item()
                     chk = len(self.res_d)
                     self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
+                    #print (self.res_d, self.res_arrs)
                     if chk != len(self.res_d):
                         raise Exception('Unknown residue detected !!')
                 else:
                     #self.res_d = {}
-
                     self.res_arrs = [self.make_input_sequence(self.pdb_files[i], self.names[i]) for i in range (len(self.pdb_files))]
+                    #print (self.res_arrs, 'aksjf')
                     if None in self.res_arrs:
                         for i in range (len(self.res_arrs)):
                             if self.res_arrs[i] is None:
                                 print (self.pdb_files[i])
-                                os.system('mv proteins/'+self.pdb_files[i]+' ../errors')
+                                #os.system('mv proteins/'+self.pdb_files[i]+' errors')
                         raise Exception('Unknown residue detected !!')
                 self.nres = len(self.res_d)#max([max(i) for i in self.res_arrs])
-                #print (self.nres)
+                print ('Number of proteins:', len(self.res_arrs))
                 self.ohe = self.make_ohe()
 
                 self.current_status = [[0.0,0.0,0.0]]
@@ -161,8 +162,8 @@ class environ_grid:
                                 if "TER" in line.split()[0]:
                                         break
                                 if line.split()[0] in ['ATOM']:
-                                        #print (line)
-                                        id,at,rt,_,_0,x,y,z=line.strip().split()[1:9]
+                                        id,at,rt,_,_0 = line[7:11].strip(), line[11:17].strip(), line[17:20].strip(), line[20:22].strip(), line[22:27].strip()
+                                        x,y,z = line[27:38].strip(), line[39:46].strip(), line[47:54].strip()
                                         s=line.strip().split()[-1]
                                         #d[len(rid)+1]=rt+_0
                                         if rt+_0 not in rid:
@@ -183,10 +184,12 @@ class environ_grid:
                 file.close()
 
                 seq = get_sequence(lines)
+                #print (seq)
                 if self.test:
                     self.seq = copy.copy(seq) 
-                if not seq or len(seq) < 10:
+                if not seq or len(seq) < 10 or len(seq) > 200:
                     return None
+                #print (seq)
                 
                 for i in range (len(seq)):
                         if seq[i] in self.res_d:
@@ -203,6 +206,7 @@ class environ_grid:
                 self.fcords = self.make_fcords()	
                 for i in range (len(self.pdb_files)):
                         if len(self.fcords[i]) != len(self.res_arrs[i]):
+                                #print (self.res_arrs[i])
                                 os.system('mv proteins/'+self.pdb_files[i]+' errors/')
                                 print ('Multiple chains detected in protein : '+self.pdb_files[i])
                                 #raise Exception('Multiple chains detected in protein : '+self.pdb_files[i])	
@@ -239,13 +243,13 @@ class environ_grid:
                             d={}
                             l = {}
                             for line in lines:
-                                        if "ENDMDL" in line.split()[0]:
+                                        if "TER" in line.split()[0]:
                                             break
                                         if line.split()[0] in ['ATOM']:
-                                            #print line
-                                            id,at,rt,_,_0,x,y,z=line.strip().split()[1:9]
+                                            id,at,rt,_,_0 = line[7:11].strip(), line[11:17].strip(), line[17:20].strip(), line[20:22].strip(), line[22:27].strip()
+                                            x,y,z = line[27:38].strip(), line[39:46].strip(), line[47:54].strip()
                                             #print (line[28:56])
-                                            x, y, z = line[28:38].strip(), line[38:46].strip(), line[46:54]
+                                            #x, y, z = line[28:38].strip(), line[38:46].strip(), line[46:54]
                                             #print (x,y,z)
                                             s=line.strip().split()[-1]
                                             #print (line.strip())
