@@ -29,6 +29,28 @@ class DQN(nn.Module):
     def forward(self, x):
         return self.net(x)
 
+class DQN(nn.Module):
+    def __init__(self, obs_size, hidden_size, n_actions):
+        super(DQN, self).__init__()
+        def init_weights(m):
+            if type(m) == nn.Linear:
+                    torch.nn.init.xavier_uniform(m.weight)
+                    m.bias.data.fill_(0.0)
+
+        self.net = nn.Sequential(
+            nn.Linear(obs_size, n_actions)
+            #nn.ReLU(),
+            #nn.Linear(hidden_size, int(hidden_size/2)),
+            #nn.ReLU(),
+            #nn.Linear(int(hidden_size/2), int(hidden_size/4)),
+                #   nn.ReLU(),
+            #nn.Linear(int(hidden_size/2), n_actions)
+        )
+        #self.net.apply(init_weights)
+
+    def forward(self, x):
+        return self.net(x)
+
 def read_inp():
     inp = 'inp'
     if len(sys.argv) > 1:
@@ -54,6 +76,10 @@ if len(sys.argv) > 2:
 
 RENDER = 1
 test = 1
+
+if int(params['doSimulation']):
+    print ('No rendering will be done as simulation is on')
+    RENDER = 0
 
 DEFAULT_ENV_NAME = params['DEFAULT_ENV_NAME']
 FCOUNTS = eval(params['FCOUNTS'])#10
