@@ -31,50 +31,6 @@ class DQN(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-class DQN(nn.Module):
-    def __init__(self, obs_size, hidden_size, n_actions):
-        super(DQN, self).__init__()
-        def init_weights(m):
-            if type(m) == nn.Linear:
-                    torch.nn.init.xavier_uniform(m.weight)
-                    m.bias.data.fill_(0.0)
-
-        self.net = nn.Sequential(
-            nn.RNN(obs_size, hidden_size, 5),
-            nn.ReLU(),
-            nn.Linear(hidden_size, int(hidden_size/2)),
-            nn.ReLU(),
-            #nn.Linear(int(hidden_size/2), int(hidden_size/4)),
-                #   nn.ReLU(),
-            nn.Linear(int(hidden_size/2), n_actions)
-        )
-        #self.net.apply(init_weights)
-
-    def forward(self, x):
-        return self.net(x)
-
-class DQN(nn.Module):
-    def __init__(self, obs_size, hidden_size, n_actions):
-        super(DQN, self).__init__()
-        self.layer1 = nn.Sequential(
-            nn.Conv1d(obs_size, hidden_size, kernel_size=5, stride=1, padding=2),
-            nn.ReLU(),
-            nn.MaxPool1d(kernel_size=2, stride=2))
-        self.layer2 = nn.Sequential(
-            nn.Conv1d(hidden_size, 64, kernel_size=5, stride=1, padding=2),
-            nn.ReLU(),
-            nn.MaxPool1d(kernel_size=2, stride=2))
-        self.drop_out = nn.Dropout()
-        self.fc1 = nn.Linear(obs_size * hidden_size * 64, 1000)
-        self.fc2 = nn.Linear(1000, 14)
-    def forward(self, x):
-    	out = self.layer1(x)
-    	out = self.layer2(out)
-    	out = out.reshape(out.size(0), -1)
-    	out = self.drop_out(out)
-    	out = self.fc1(out)
-    	out = self.fc2(out)
-    	return out
 
 class Agent:
     def __init__(self, env, exp_buffer):
